@@ -542,7 +542,7 @@ configure: failed program was:
 configure:16709: result: no
 configure:16721: checking for library containing dlopen
 configure:16752: gcc -o conftest -fstack-protector -ffreestanding -fvisibility=hidden -fpie -fno-strict-overflow -fno-delete-null-pointer-checks -O2 -std=c99 -fno-builtin -DHAVE_SGX=1 -fPIC -DUNW_LOCAL_ONLY -fdebug-prefix-map=/root/sgx/samplecode/workspace/enclave/target/release/build/sgx_unwind-17a4a28f2f016cd5/out/libunwind=/libunwind    conftest.c  >&5
-/usr/bin/ld: /tmp/ccRrNf6F.o: in function `main':
+/usr/bin/ld: /tmp/ccpn7Hoh.o: in function `main':
 conftest.c:(.text.startup+0x7): undefined reference to `dlopen'
 collect2: error: ld returned 1 exit status
 configure:16752: $? = 1
@@ -1876,7 +1876,7 @@ configure:17373: $? = 0
 configure:17373: result: yes
 configure:17373: checking for dl_phdr_removals_counter
 configure:17373: gcc -o conftest -fstack-protector -ffreestanding -fvisibility=hidden -fpie -fno-strict-overflow -fno-delete-null-pointer-checks -O2 -std=c99 -fno-builtin -DHAVE_SGX=1 -fPIC -DUNW_LOCAL_ONLY -fdebug-prefix-map=/root/sgx/samplecode/workspace/enclave/target/release/build/sgx_unwind-17a4a28f2f016cd5/out/libunwind=/libunwind   -D_GNU_SOURCE  conftest.c  >&5
-/usr/bin/ld: /tmp/ccovFYh1.o: in function `main':
+/usr/bin/ld: /tmp/ccKzcsXE.o: in function `main':
 conftest.c:(.text.startup+0x7): undefined reference to `dl_phdr_removals_counter'
 collect2: error: ld returned 1 exit status
 configure:17373: $? = 1
@@ -1973,7 +1973,7 @@ configure: failed program was:
 configure:17373: result: no
 configure:17373: checking for dlmodinfo
 configure:17373: gcc -o conftest -fstack-protector -ffreestanding -fvisibility=hidden -fpie -fno-strict-overflow -fno-delete-null-pointer-checks -O2 -std=c99 -fno-builtin -DHAVE_SGX=1 -fPIC -DUNW_LOCAL_ONLY -fdebug-prefix-map=/root/sgx/samplecode/workspace/enclave/target/release/build/sgx_unwind-17a4a28f2f016cd5/out/libunwind=/libunwind   -D_GNU_SOURCE  conftest.c  >&5
-/usr/bin/ld: /tmp/cccbUwT3.o: in function `main':
+/usr/bin/ld: /tmp/ccK6cEBH.o: in function `main':
 conftest.c:(.text.startup+0x7): undefined reference to `dlmodinfo'
 collect2: error: ld returned 1 exit status
 configure:17373: $? = 1
@@ -2070,7 +2070,7 @@ configure: failed program was:
 configure:17373: result: no
 configure:17373: checking for getunwind
 configure:17373: gcc -o conftest -fstack-protector -ffreestanding -fvisibility=hidden -fpie -fno-strict-overflow -fno-delete-null-pointer-checks -O2 -std=c99 -fno-builtin -DHAVE_SGX=1 -fPIC -DUNW_LOCAL_ONLY -fdebug-prefix-map=/root/sgx/samplecode/workspace/enclave/target/release/build/sgx_unwind-17a4a28f2f016cd5/out/libunwind=/libunwind   -D_GNU_SOURCE  conftest.c  >&5
-/usr/bin/ld: /tmp/ccKAahk6.o: in function `main':
+/usr/bin/ld: /tmp/cc614scK.o: in function `main':
 conftest.c:(.text.startup+0x7): undefined reference to `getunwind'
 collect2: error: ld returned 1 exit status
 configure:17373: $? = 1
@@ -2167,7 +2167,7 @@ configure: failed program was:
 configure:17373: result: no
 configure:17373: checking for ttrace
 configure:17373: gcc -o conftest -fstack-protector -ffreestanding -fvisibility=hidden -fpie -fno-strict-overflow -fno-delete-null-pointer-checks -O2 -std=c99 -fno-builtin -DHAVE_SGX=1 -fPIC -DUNW_LOCAL_ONLY -fdebug-prefix-map=/root/sgx/samplecode/workspace/enclave/target/release/build/sgx_unwind-17a4a28f2f016cd5/out/libunwind=/libunwind   -D_GNU_SOURCE  conftest.c  >&5
-/usr/bin/ld: /tmp/cckIIOP8.o: in function `main':
+/usr/bin/ld: /tmp/cc7dzvEF.o: in function `main':
 conftest.c:(.text.startup+0x7): undefined reference to `ttrace'
 collect2: error: ld returned 1 exit status
 configure:17373: $? = 1

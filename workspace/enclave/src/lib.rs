@@ -31,18 +31,132 @@ use sgx_types::*;
 use ndarray::Array;
 use ndarray::prelude::*;
 use ndarray::stack;
+use std::iter::FromIterator;
 
-fn func(pcd: &mut Array2<f32>, retptr: *mut f32) {
+fn prepare_retptr(pcd: Array2<f32>, retptr: *mut f32) {
     let mut idx: usize = 0;
     let elem_num: usize = pcd.len();
     while idx < elem_num {
         unsafe {
-            let x:f32 = idx as f32;
             *retptr.offset(idx as isize) = pcd[[idx / 4, idx % 4]];
         };
         idx += 1;
     }
     println!("final index {}", idx);
+}
+
+fn maximum_1d_f32(arr: Array1<f32>) -> f32 {
+	let mut flat_arr = Array::from_iter(arr.iter().cloned());
+
+    let mut cur_max = -f32::INFINITY;
+    for ((idx), value) in flat_arr.indexed_iter() {
+        if cur_max < *value {
+            cur_max = *value;
+        }
+    }
+    return cur_max;
+}
+
+fn maximum_3d_i32(arr: Array3<i32>) -> i32 {
+	let mut flat_arr = Array::from_iter(arr.iter().cloned());
+
+    let mut cur_max = 0i32;
+    for ((idx), value) in flat_arr.indexed_iter() {
+        if cur_max < *value {
+            cur_max = *value;
+        }
+    }
+    return cur_max;
+}
+
+fn minimum_1d_f32(arr: Array1<f32>) -> f32 {
+	let mut flat_arr = Array::from_iter(arr.iter().cloned());
+
+    let mut cur_min = f32::INFINITY;
+    for ((idx), value) in flat_arr.indexed_iter() {
+        if cur_min > *value {
+            cur_min = *value;
+        }
+    }
+    return cur_min;
+}
+
+fn voxelize_pcd(pcd: Array2<f32>, voxel_size: f32) -> Array3<i32> {
+    let ground_thickness: f32 = 0.25;
+
+    let pcd_x = pcd.index_axis(Axis(1), 0).to_owned();
+    let min_x: f32 = minimum_1d_f32(pcd_x.clone());
+    let max_x: f32 = maximum_1d_f32(pcd_x.clone());
+    let x_length: usize = ((max_x - min_x) / voxel_size + 1f32)as usize;
+    println!("x {} {} {}", min_x, max_x, x_length);
+
+    let pcd_y = pcd.index_axis(Axis(1), 1).to_owned();
+    let min_y: f32 = minimum_1d_f32(pcd_y.clone());
+    let max_y: f32 = maximum_1d_f32(pcd_y.clone());
+    let y_length: usize = ((max_y - min_y) / voxel_size + 1f32)as usize;
+    println!("y {} {} {}", min_y, max_y, y_length);  
+    
+    let pcd_z = pcd.index_axis(Axis(1), 2).to_owned();
+    let min_z: f32 = minimum_1d_f32(pcd_z.clone());
+    let max_z: f32 = maximum_1d_f32(pcd_z.clone());
+    let z_length: usize = ((max_z - min_z) / voxel_size + 1f32)as usize;
+    println!("z {} {} {}", min_z, max_z, z_length);    
+
+    let mut voxels = Array3::<i32>::zeros((x_length, y_length, z_length));
+
+    for point in pcd.outer_iter() {
+        if point[2] > min_z + ground_thickness {
+            let x_idx: usize = ((point[0] - min_x) / voxel_size) as usize;
+            let y_idx: usize = ((point[1] - min_y) / voxel_size) as usize;
+            let z_idx: usize = ((point[2] - min_z) / voxel_size) as usize;
+            
+            voxels[[x_idx, y_idx, z_idx]] += 1i32;
+        }
+    }
+    return voxels;
+}
+
+fn segment_pcd(pcd: Array2<f32>, points_num: usize) -> Array2<f32> {
+    let voxel_size = 0.25;
+
+    let voxels = voxelize_pcd(pcd.clone(), voxel_size);
+    println!("voxels \n{:?}", voxels);
+    let mut pcd_cls = Array2::<f32>::zeros((points_num, 1));
+
+
+    let pcd_x = pcd.index_axis(Axis(1), 0).to_owned();
+    let min_x: f32 = minimum_1d_f32(pcd_x.clone());
+    let max_x: f32 = maximum_1d_f32(pcd_x.clone());
+    let x_length: usize = ((max_x - min_x) / voxel_size + 1f32)as usize;
+    println!("x {} {} {}", min_x, max_x, x_length);
+
+    let pcd_y = pcd.index_axis(Axis(1), 1).to_owned();
+    let min_y: f32 = minimum_1d_f32(pcd_y.clone());
+    let max_y: f32 = maximum_1d_f32(pcd_y.clone());
+    let y_length: usize = ((max_y - min_y) / voxel_size + 1f32)as usize;
+    println!("y {} {} {}", min_y, max_y, y_length);  
+    
+    let pcd_z = pcd.index_axis(Axis(1), 2).to_owned();
+    let min_z: f32 = minimum_1d_f32(pcd_z.clone());
+    let max_z: f32 = maximum_1d_f32(pcd_z.clone());
+    let z_length: usize = ((max_z - min_z) / voxel_size + 1f32)as usize;
+    println!("z {} {} {}", min_z, max_z, z_length);    
+
+    let max_point_num = maximum_3d_i32(voxels.clone());
+    let mut idx: usize = 0;
+
+    for point in pcd.outer_iter() {
+        let x_idx: usize = ((point[0] - min_x) / voxel_size) as usize;
+        let y_idx: usize = ((point[1] - min_y) / voxel_size) as usize;
+        let z_idx: usize = ((point[2] - min_z) / voxel_size) as usize;
+        
+        println!("{}", voxels[[x_idx, y_idx, z_idx]]);
+        pcd_cls[[idx, 0]] = (voxels[[x_idx, y_idx, z_idx]] as f32) / (max_point_num as f32);
+        idx += 1;
+    }
+
+    // let x = segment_pcd.mean();
+    return pcd_cls;
 }
 
 #[no_mangle]
@@ -58,22 +172,16 @@ pub extern "C" fn process_lidar(lidar: *const f32, points_num: usize, retptr: *m
     }
     println!("Enclave received lidar image {:?}, {:?}", pcd.shape(), pcd.len());
 
-    let mut colors = Array2::<f32>::zeros((points_num, 1));
-    let mut cpcd = 	stack![Axis(1), pcd, colors];
+    let pcd_cls = segment_pcd(pcd.clone(), points_num);  
+
+    println!("pcl cls {:?}", pcd_cls.shape());
+
+    // let mut colors = Array2::<f32>::zeros((points_num, 1));
+    let mut cpcd = stack![Axis(1), pcd, pcd_cls];
 
     println!("Enclave received lidar image {:?}, {:?}", cpcd.shape(), cpcd.len());
 
-    // Point cloud preprocessing (voxelization to reduce point count).
-
-    // Ground detection.
-
-    // Object segmentation.
-
-    // Point cloud reduction (remain only object and ground points).
-    
-    // Occupancy map generation.
-
-    func(&mut cpcd, retptr);
+    prepare_retptr(cpcd, retptr);
     println!("Enclave return");
     sgx_status_t::SGX_SUCCESS
 }
