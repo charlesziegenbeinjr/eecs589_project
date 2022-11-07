@@ -511,7 +511,7 @@ static sgx_status_t SGX_CDECL sgx_process_lidar(void* pms)
 	size_t _len_lidar = 180000 * sizeof(float);
 	float* _in_lidar = NULL;
 	float* _tmp_retptr = ms->ms_retptr;
-	size_t _len_retptr = 180000 * sizeof(float);
+	size_t _len_retptr = 240000 * sizeof(float);
 	float* _in_retptr = NULL;
 
 	if (sizeof(*_tmp_lidar) != 0 &&
@@ -520,7 +520,7 @@ static sgx_status_t SGX_CDECL sgx_process_lidar(void* pms)
 	}
 
 	if (sizeof(*_tmp_retptr) != 0 &&
-		180000 > (SIZE_MAX / sizeof(*_tmp_retptr))) {
+		240000 > (SIZE_MAX / sizeof(*_tmp_retptr))) {
 		return SGX_ERROR_INVALID_PARAMETER;
 	}
 

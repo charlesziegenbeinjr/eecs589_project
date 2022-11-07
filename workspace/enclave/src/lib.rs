@@ -30,6 +30,7 @@ extern crate ndarray;
 use sgx_types::*;
 use ndarray::Array;
 use ndarray::prelude::*;
+use ndarray::stack;
 
 fn func(pcd: &mut Array2<f32>, retptr: *mut f32) {
     let mut idx: usize = 0;
@@ -37,7 +38,7 @@ fn func(pcd: &mut Array2<f32>, retptr: *mut f32) {
     while idx < elem_num {
         unsafe {
             let x:f32 = idx as f32;
-            *retptr.offset(idx as isize) = pcd[[idx / 3, idx % 3]];
+            *retptr.offset(idx as isize) = pcd[[idx / 4, idx % 4]];
         };
         idx += 1;
     }
@@ -57,6 +58,11 @@ pub extern "C" fn process_lidar(lidar: *const f32, points_num: usize, retptr: *m
     }
     println!("Enclave received lidar image {:?}, {:?}", pcd.shape(), pcd.len());
 
+    let mut colors = Array2::<f32>::zeros((points_num, 1));
+    let mut cpcd = 	stack![Axis(1), pcd, colors];
+
+    println!("Enclave received lidar image {:?}, {:?}", cpcd.shape(), cpcd.len());
+
     // Point cloud preprocessing (voxelization to reduce point count).
 
     // Ground detection.
@@ -67,7 +73,7 @@ pub extern "C" fn process_lidar(lidar: *const f32, points_num: usize, retptr: *m
     
     // Occupancy map generation.
 
-    func(&mut pcd, retptr);
+    func(&mut cpcd, retptr);
     println!("Enclave return");
     sgx_status_t::SGX_SUCCESS
 }

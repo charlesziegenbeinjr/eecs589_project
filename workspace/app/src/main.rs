@@ -90,10 +90,11 @@ fn write_2_lidar_text(file_path: &str, arr: &mut[f32]) {
         .open(file_path)
         .unwrap();
 
-    for line_idx in 0..arr.len() / 3 {
-        let string = arr[line_idx * 3].to_string() + ","
-                    + &arr[line_idx * 3 + 1].to_string() + ","
-                    + &arr[line_idx * 3 + 2].to_string();
+    for line_idx in 0..arr.len() / 4 {
+        let string = arr[line_idx * 4].to_string() + ","
+                    + &arr[line_idx * 4 + 1].to_string() + ","
+                    + &arr[line_idx * 4 + 2].to_string() + ","
+                    + &arr[line_idx * 4 + 3].to_string();
         if let Err(e) = writeln!(file, "{}", string) {
             eprintln!("Couldn't write to file: {}", e);
         }
@@ -127,7 +128,7 @@ fn main() {
         }
     }
 
-    const retsize:usize = 180000;
+    const retsize:usize = 180000 + (180000 / 3);
     let mut retarr: [f32; retsize] = [2.0; retsize];
     println!("allocated {}", retarr.len());
     // println!("11 {:?}", retarr);
