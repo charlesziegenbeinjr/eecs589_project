@@ -1,5 +1,6 @@
 import numpy as np
 import pdb
+from viz import vizArray
 
 def segmentPoints(points, param, z_threshold):
     xy, z = points[:, :2], points[:, 2].reshape(-1, 1)
@@ -7,7 +8,8 @@ def segmentPoints(points, param, z_threshold):
     z_plane = xy @ param
     z_diff = (z - z_plane).reshape(-1)
     ground_points = points[z_diff < z_threshold]
-    return ground_points
+    object_points = points[z_diff >= z_threshold]
+    return ground_points, object_points
 
 def checkInlierNumBatch(points, param, dist_threshold):
     xy, z = points[:, :2], points[:, 2].reshape(-1, 1)
@@ -62,10 +64,20 @@ def main():
     print(points.shape)
     points = downsamplePoints(points, 50000, 50)
     print(points.shape, points[:, 2].max(), points[:, 2].min())
-    param = ransac(points, 0.1, 100, 50)
+    param = ransac(points, 0.1, 200, 50)
 
-    ground_points = segmentPoints(points, param, 0.25)
+    ground_points, object_points = segmentPoints(points, param, 0.25)
+
+    ground_colors = np.ones_like(ground_points) * 0.5
+    ground_colors[:, 0] = 0.95
+    object_colors = np.ones_like(object_points) * 0.5
+    object_colors[:, 2] = 0.95
     print(ground_points.shape, ground_points[:, 2].max(), ground_points[:, 2].min())
+
+    points = np.concatenate((ground_points, object_points), axis=0)
+    colors = np.concatenate((ground_colors, object_colors), axis=0)
+
+    vizArray(points, colors)
 
 if __name__ == '__main__':
     main()

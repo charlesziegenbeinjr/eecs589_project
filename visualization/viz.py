@@ -1,32 +1,26 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import open3d as o3d
+import plotly.graph_objects as go
 
-lidar = np.loadtxt('../test/lidar.txt', delimiter=',')
-print(lidar.shape)
+def vizArray(xyz, colors):
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(xyz)
+    pcd.colors = o3d.utility.Vector3dVector(colors)
+    o3d.visualization.draw_geometries([pcd]) # Visualize the point cloud   
 
-ax = plt.figure().add_subplot(projection='3d')
-y = lidar[:, 0]
-x = lidar[:, 1]
-z = lidar[:, 2]
-# By using zdir='y', the y value of these points is fixed to the zs value 0
-# and the (x, y) points are plotted on the x and z axes.
-ax.scatter(z, x, y, label='points in (x, z)')
+def main():
+    cloud = np.loadtxt('/home/ruohuali/Desktop/output.txt', delimiter=',')
+    xyz, c = cloud[:, :3], cloud[:, 3]
+    print(c.shape)
+    c = np.clip(c * 20, 0, 1)
+    colors = np.ones_like(xyz) * 0.1
+    colors[:, 2] = c
+    # colors = np.zeros_like(xyz)
+    # dists = np.linalg.norm(xyz[:,:2], axis=1)
+    # colors[:,2] = dists / np.max(dists)
+    # print(dists.shape)
+    print(xyz.shape)
+    vizArray(xyz, colors)
 
-# Make legend, set axes limits and labels
-ax.legend()
-# ax.set_xlim(0, 1)
-# ax.set_ylim(0, 1)
-# ax.set_zlim(0, 1)
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-
-ax.set_xlim(x.min(), x.max())
-ax.set_ylim(y.min(), y.max())
-ax.set_zlim(z.min(), z.max())
-ax.autoscale(False)
-
-# Customize the view angle so it's easier to see that the scatter points lie
-# on the plane y=0
-# ax.view_init(elev=20., azim=-35, roll=0)
-plt.show()
+if __name__ == '__main__':
+    main()
