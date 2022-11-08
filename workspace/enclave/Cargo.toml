@@ -15,6 +15,7 @@ sgx_types = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 sgx_tstd = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 ndarray = { git = "https://github.com/mesalock-linux/ndarray-sgx.git" }
 rulinalg = {git = "https://github.com/mesalock-linux/rulinalg-sgx.git"}
+rand = {git = "https://github.com/mesalock-linux/rand-sgx.git"}
 
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
 sgx_align_struct_attribute = { path = "../../../sgx_align_struct_attribute" }
