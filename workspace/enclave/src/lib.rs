@@ -31,6 +31,7 @@ extern crate rand;
 
 use sgx_types::*;
 use std::vec::*;
+use std::num::*;
 use rulinalg::matrix::{BaseMatrix, Matrix, MatrixSlice, MatrixSliceMut};
 use rand::Rng;
 
@@ -57,17 +58,17 @@ fn prepare_retptr(pcd: Matrix::<f32>, retptr: *mut f32) {
     }
 }
 
-fn sample_ids(n: i32) -> Vec<usize> {
+fn sample_ids(n: i32, min:usize, max:usize) -> Vec<usize> {
     let mut rng = rand::thread_rng();
     let mut vec = Vec::new();
     for _i in 0..n {
-        vec.push(rng.gen_range(0, 10));
+        vec.push(rng.gen_range(min, max));
     }
     return vec;
 }
 
 fn sample_3_points(pcd: Matrix::<f32>) -> Matrix::<f32> {
-    let ids = sample_ids(3);
+    let ids = sample_ids(3, 0, pcd.rows());
     let mut three_points = Matrix::<f32>::zeros(3, 3);
     for i in 0..3 {
         let idx = ids[i];
@@ -122,9 +123,47 @@ fn fit_plane(three_points: Matrix::<f32>) -> Matrix::<f32> {
     return param;
 }
 
-fn check_inlier_num(pcd: Matrix::<f32>, param: Matrix::<f32>, z_threshold: f32) -> i32 {
-    return 0;
+fn check_inlier_num(pcd: Matrix::<f32>, param: Matrix::<f32>, z_threshold: f32) -> (Matrix::<f32>, i32) {
+    let xy = MatrixSlice::from_matrix(&pcd, [0, 0], pcd.rows(), 2).into_matrix();
+    let ones = Matrix::<f32>::ones(pcd.rows(), 1);
+    let xy1 = xy.hcat(&ones);
+    let z = MatrixSlice::from_matrix(&pcd, [0, 2], pcd.rows(), 1).into_matrix();
+    let mut pcd_cls = Matrix::<f32>::zeros(pcd.rows(), 1);
+    let mut inlier_num: i32 = 0;
+
+    let mut row_idx: usize = 0;
+    for row in xy1.row_iter() {
+        let point = (*row).into_matrix();
+        let z_plane = point * param.clone();
+        let z_diff = z_plane[[0, 0]] - z[[row_idx, 0]];
+
+        if z_diff.abs() < z_threshold {
+            inlier_num += 1;
+            pcd_cls[[row_idx, 0]] = 1f32;
+        }
+        row_idx += 1;
+    }
+
+    return (pcd_cls, inlier_num); 
 }
+
+fn ransac(pcd: Matrix::<f32>, z_threshold: f32, iteration_num: i32) -> (Matrix::<f32>, i32) {
+    let mut best_param = Matrix::<f32>::zeros(3, 1);
+    let mut max_inlier_num: i32 = 0;
+    let mut best_pcd_cls = Matrix::<f32>::zeros(pcd.rows(), 1);
+    for epoch in 0..iteration_num {
+        let current_points = sample_3_points(pcd.clone());
+        let current_param = fit_plane(current_points);
+        let (current_pcd_cls, current_inlier_num) = check_inlier_num(pcd.clone(), current_param.clone(), z_threshold);
+        if current_inlier_num > max_inlier_num {
+            best_param = current_param;
+            max_inlier_num = current_inlier_num;
+            best_pcd_cls = current_pcd_cls;
+        }
+        println!("epoch {:?} cur {:?} best {:?}", epoch, current_inlier_num, max_inlier_num);
+    }
+    return (best_pcd_cls, max_inlier_num);
+} 
 
 #[no_mangle]
 pub extern "C" fn process_lidar(lidar: *const f32, points_num: usize, retptr: *mut f32) -> sgx_status_t {
@@ -132,12 +171,10 @@ pub extern "C" fn process_lidar(lidar: *const f32, points_num: usize, retptr: *m
     let pcd = prepare_pcd_matrix(lidar, points_num);
     println!("a {:?}, {:?}", pcd.rows(), pcd.cols());
 
-    let three_points = sample_3_points(pcd.clone());
-    let param = fit_plane(three_points);
-    println!("p {:?}", param);
+    let (best_pcd_cls, max_inlier_num) = ransac(pcd.clone(), 0.1, 100);
 
-    let c = Matrix::<f32>::ones(points_num, 1) * 0.2;
-    let cpcd = pcd.hcat(&c);
+    // let c = Matrix::<f32>::ones(points_num, 1) * 0.2;
+    let cpcd = pcd.hcat(&best_pcd_cls);
     println!("b {:?}, {:?}", cpcd.rows(), cpcd.cols());
 
     prepare_retptr(cpcd, retptr);
