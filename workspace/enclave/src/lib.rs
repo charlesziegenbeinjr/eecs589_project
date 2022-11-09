@@ -123,7 +123,7 @@ fn fit_plane(three_points: Matrix::<f32>) -> Matrix::<f32> {
     return param;
 }
 
-fn check_inlier_num(pcd: Matrix::<f32>, param: Matrix::<f32>, z_threshold: f32) -> (Matrix::<f32>, i32) {
+fn check_inlier_num(pcd: Matrix::<f32>, param: Matrix::<f32>, z_threshold: f32, use_abs_metric: bool) -> (Matrix::<f32>, i32) {
     let xy = MatrixSlice::from_matrix(&pcd, [0, 0], pcd.rows(), 2).into_matrix();
     let ones = Matrix::<f32>::ones(pcd.rows(), 1);
     let xy1 = xy.hcat(&ones);
@@ -135,9 +135,12 @@ fn check_inlier_num(pcd: Matrix::<f32>, param: Matrix::<f32>, z_threshold: f32) 
     for row in xy1.row_iter() {
         let point = (*row).into_matrix();
         let z_plane = point * param.clone();
-        let z_diff = z_plane[[0, 0]] - z[[row_idx, 0]];
+        let mut z_diff = z[[row_idx, 0]] - z_plane[[0, 0]];
+        if use_abs_metric {
+            z_diff = z_diff.abs();
+        }
 
-        if z_diff.abs() < z_threshold {
+        if z_diff < z_threshold {
             inlier_num += 1;
             pcd_cls[[row_idx, 0]] = 1f32;
         }
@@ -154,7 +157,7 @@ fn ransac(pcd: Matrix::<f32>, z_threshold: f32, iteration_num: i32) -> (Matrix::
     for epoch in 0..iteration_num {
         let current_points = sample_3_points(pcd.clone());
         let current_param = fit_plane(current_points);
-        let (current_pcd_cls, current_inlier_num) = check_inlier_num(pcd.clone(), current_param.clone(), z_threshold);
+        let (current_pcd_cls, current_inlier_num) = check_inlier_num(pcd.clone(), current_param.clone(), z_threshold, true);
         if current_inlier_num > max_inlier_num {
             best_param = current_param;
             max_inlier_num = current_inlier_num;
@@ -162,7 +165,7 @@ fn ransac(pcd: Matrix::<f32>, z_threshold: f32, iteration_num: i32) -> (Matrix::
         }
         println!("epoch {:?} cur {:?} best {:?}", epoch, current_inlier_num, max_inlier_num);
     }
-    return (best_pcd_cls, max_inlier_num);
+    return (best_param, max_inlier_num);
 } 
 
 #[no_mangle]
@@ -171,10 +174,11 @@ pub extern "C" fn process_lidar(lidar: *const f32, points_num: usize, retptr: *m
     let pcd = prepare_pcd_matrix(lidar, points_num);
     println!("a {:?}, {:?}", pcd.rows(), pcd.cols());
 
-    let (best_pcd_cls, max_inlier_num) = ransac(pcd.clone(), 0.1, 100);
+    let (best_param, max_inlier_num) = ransac(pcd.clone(), 0.1, 100);
+    let (pcd_cls, ground_points_num) = check_inlier_num(pcd.clone(), best_param, 0.25, false);
 
     // let c = Matrix::<f32>::ones(points_num, 1) * 0.2;
-    let cpcd = pcd.hcat(&best_pcd_cls);
+    let cpcd = pcd.hcat(&pcd_cls);
     println!("b {:?}, {:?}", cpcd.rows(), cpcd.cols());
 
     prepare_retptr(cpcd, retptr);
