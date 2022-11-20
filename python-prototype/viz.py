@@ -4,7 +4,6 @@ import plotly.graph_objects as go
 
 def generatePcdColor(pcd, coeff):
     xyz, c = pcd[:, :3], pcd[:, 3]
-
     colors = np.ones_like(xyz)
     colors[:, :2] *= coeff
     colors[:, 2] = c

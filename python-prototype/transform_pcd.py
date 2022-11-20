@@ -20,7 +20,7 @@ def lidarPose2Matrix(pose):
     matrix = translation_matrix @ rotation_matrix
     return matrix
 
-def transformPcd2WorldFrame(pcd, pose, world_center):
+def transformPcd2WorldFrame(pcd, pose, world_center=np.zeros((3,))):
     xyz, c = pcd[:, :3], pcd[:, 3]
     xyz1 = np.concatenate((xyz, np.ones((xyz.shape[0], 1))), axis=1)
 
@@ -43,6 +43,19 @@ def stitchTwoPcd(pcd1, pcd2, pose1, pose2, world_center):
     xyz = np.concatenate((xyz1, xyz2), axis=0)
     colors = np.concatenate((colors1, colors2), axis=0)
     vizArray(xyz, colors)
+
+def stitchPcds(pcds, lidar_poses):
+    assert len(pcds) == len(lidar_poses)
+    xyz_list = []
+    color_list = []
+    for idx, (pcd, lidar_pose) in enumerate(zip(pcds, lidar_poses)):
+        pcd_w = transformPcd2WorldFrame(pcd, lidar_pose)
+        xyz, color = generatePcdColor(pcd_w, (idx + 1) / len(pcds))
+        xyz_list.append(xyz)
+        color_list.append(color)
+    xyzs = np.concatenate(xyz_list, axis=0)
+    colors = np.concatenate(color_list, axis=0)
+    return xyzs, colors
 
 if __name__ == '__main__':
     pcd1 = np.loadtxt('/home/ruohuali/Desktop/eecs589_project/opv2v/2005_000069.txt', delimiter=' ')

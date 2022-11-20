@@ -60,17 +60,24 @@ def ransac(xyz, dist_threshold, max_iteraton, batch_size):
     print(f'final max num {max_inlier_num}')
     return best_param
 
-def downsampleXyz(xyz, remain_num, dist_threshold):
-    dists = np.linalg.norm(xyz, axis=1)
-    filtered_xyz = xyz[dists < dist_threshold]
-    return filtered_xyz[:min(remain_num, filtered_xyz.shape[0])]
+def downsamplePcdAlong1Axis(pcd, dists, dist_threshold):
+    dists_ids = dists.argsort()
+    sorted_pcd = pcd[dists_ids[::-1]]
+    filtered_pcd = pcd[dists < dist_threshold]
+    return filtered_pcd
+
+def downsamplePcd(pcd, x_dist_threshold, y_dist_threshold):
+    x_dists = pcd[:, 0]
+    filtered_pcd = downsamplePcdAlong1Axis(pcd, x_dists, x_dist_threshold)
+    y_dists = filtered_pcd[:, 1]
+    filtered_pcd = downsamplePcdAlong1Axis(filtered_pcd, y_dists, y_dist_threshold)
+    return filtered_pcd
 
 def groundSegmentation(pcd):
     xyz = pcd[:, :3]
-    xyz = downsampleXyz(xyz, 50000, 20)
+    # xyz = downsampleXyz(xyz, 50000, 20)
     param = ransac(xyz, 0.1, 200, 50)
     points = segmentXyz(xyz, param, 0.5)
-
     return points
 
 if __name__ == '__main__':
