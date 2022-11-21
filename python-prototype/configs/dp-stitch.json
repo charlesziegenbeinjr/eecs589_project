@@ -5,14 +5,14 @@
             "pcd_file_delimiter": " ",
             "lidar_pose_file_path": "/home/ruohuali/Desktop/eecs589_project/opv2v/2005_000069_lidar_pose.txt",
             "lidar_pose_file_delimiter": " ",
-            "ground_segmentation": false
+            "ground_segmentation": true
         },
         {
             "pcd_file_path": "/home/ruohuali/Desktop/eecs589_project/opv2v/2014_000069.txt",
             "pcd_file_delimiter": " ",
             "lidar_pose_file_path": "/home/ruohuali/Desktop/eecs589_project/opv2v/2014_000069_lidar_pose.txt",
             "lidar_pose_file_delimiter": " ",
-            "ground_segmentation": false
+            "ground_segmentation": true
         }
     ],
     "stitch": true,

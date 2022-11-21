@@ -34,28 +34,16 @@ def transformPcd2WorldFrame(pcd, pose, world_center=np.zeros((3,))):
     pcd = np.concatenate((xyz, c.reshape(-1, 1)), axis=1)
     return pcd
 
-def stitchTwoPcd(pcd1, pcd2, pose1, pose2, world_center):
-    # pcd2_w = pcd1.copy()
-    pcd1_w = transformPcd2WorldFrame(pcd1, pose1, world_center)
-    pcd2_w = transformPcd2WorldFrame(pcd2, pose2, world_center)
-    xyz1, colors1 = generatePcdColor(pcd1_w, 0.5)
-    xyz2, colors2 = generatePcdColor(pcd2_w, 0.75)
-    xyz = np.concatenate((xyz1, xyz2), axis=0)
-    colors = np.concatenate((colors1, colors2), axis=0)
-    vizArray(xyz, colors)
+def downsamplePcdAlong1Axis(pcd, dists, dist_threshold):
+    filtered_pcd = pcd[dists < dist_threshold]
+    return filtered_pcd
 
-def stitchPcds(pcds, lidar_poses):
-    assert len(pcds) == len(lidar_poses)
-    xyz_list = []
-    color_list = []
-    for idx, (pcd, lidar_pose) in enumerate(zip(pcds, lidar_poses)):
-        pcd_w = transformPcd2WorldFrame(pcd, lidar_pose)
-        xyz, color = generatePcdColor(pcd_w, (idx + 1) / len(pcds))
-        xyz_list.append(xyz)
-        color_list.append(color)
-    xyzs = np.concatenate(xyz_list, axis=0)
-    colors = np.concatenate(color_list, axis=0)
-    return xyzs, colors
+def downsamplePcd(pcd, x_dist_threshold, y_dist_threshold):
+    x_dists = np.abs(pcd[:, 0])
+    filtered_pcd = downsamplePcdAlong1Axis(pcd, x_dists, x_dist_threshold)
+    y_dists = np.abs(filtered_pcd[:, 1])
+    filtered_pcd = downsamplePcdAlong1Axis(filtered_pcd, y_dists, y_dist_threshold)
+    return filtered_pcd
 
 if __name__ == '__main__':
     pcd1 = np.loadtxt('/home/ruohuali/Desktop/eecs589_project/opv2v/2005_000069.txt', delimiter=' ')

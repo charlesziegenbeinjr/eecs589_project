@@ -9,6 +9,17 @@ def generatePcdColor(pcd, coeff):
     colors[:, 2] = c
     return xyz, colors
 
+def generatePcdListColor(pcds):
+    xyz_list = []
+    color_list = []
+    for idx, pcd in enumerate(pcds):
+        xyz, color = generatePcdColor(pcd, ((idx + 1) * 2 / 3) / len(pcds))
+        xyz_list.append(xyz)
+        color_list.append(color)
+    xyzs = np.concatenate(xyz_list, axis=0)
+    colors = np.concatenate(color_list, axis=0)
+    return xyzs, colors
+
 def vizArray(xyz, colors):
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(xyz)
