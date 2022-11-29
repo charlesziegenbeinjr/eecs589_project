@@ -43,6 +43,38 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
                        &mut misc_attr)
 }
 
+
+fn parse_lidar_pose(file_path: &str) -> [f32; 6] {
+    let s = fs::read_to_string(file_path).unwrap();
+    let mut lidar_pose: [f32; 6] = [0.0; 6];
+    let tokens: Vec<&str> = s.split(",").collect();
+    for (i, token) in tokens.iter().enumerate() {
+        lidar_pose[i] = token.parse().unwrap();
+    }
+    return lidar_pose;
+}
+
+fn parse_lidar(file_path: &str) -> Vec<[f32; 3]> {
+    let s = fs::read_to_string(file_path).unwrap();
+    let mut lidar = Vec::new();
+    let lines: Vec<&str> = s.split("\n").collect();
+    for line in lines.iter() {
+        let xyz_str: Vec<&str> = line.split(",").collect();
+        let mut xyz: [f32; 3] = [0.0; 3];
+        for (j, n) in xyz_str.iter().enumerate() {
+            if n.len() == 0 {
+                break;
+            }
+            if j >= 3 {
+                break;
+            }
+            xyz[j] = n.parse().unwrap();
+        }
+        lidar.push(xyz)
+    }
+    return lidar
+}
+
 fn main() {
     let enclave = match init_enclave() {
         Ok(r) => {
@@ -54,6 +86,34 @@ fn main() {
             return;
         },
     };
+
+    let mut retval = sgx_status_t::SGX_SUCCESS;
+
+    let lidar_pose: [f32; 6] = parse_lidar_pose("../test/lidar_pose.txt");
+    println!("Loaded lidar pose {:?}", lidar_pose);
+    let lidar_vector: Vec<[f32; 3]> = parse_lidar("../test/lidar.txt");
+    let points_num = lidar_vector.len();
+    println!("Loaded lidar image {:?}", points_num);
+
+    let mut lidar: [f32; 180000] = [0.0; 180000];
+    for (i, point) in lidar_vector.iter().enumerate() {
+        for j in 0..3 {
+            lidar[i * 3 + j] = point[j];
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     let input_string = String::from("This is a normal world string passed into Enclave!\n");
     let mut retval = sgx_status_t::SGX_SUCCESS;

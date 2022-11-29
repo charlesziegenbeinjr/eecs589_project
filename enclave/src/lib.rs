@@ -59,38 +59,6 @@ pub extern "C" fn say_something(some_string: *const u8, some_len: usize) -> sgx_
     // Construct a string from &'static string
     let mut hello_string = String::from(rust_raw_string);
 
-    // let mod_size: i32 = 256;
-    // let exp_size: i32 = 4;
-    // let mut n: Vec<u8> = vec![0_u8; mod_size as usize];
-    // let mut d: Vec<u8> = vec![0_u8; mod_size as usize];
-    // let mut e: Vec<u8> = vec![1, 0, 1, 0];
-    // let mut p: Vec<u8> = vec![0_u8; mod_size as usize / 2];
-    // let mut q: Vec<u8> = vec![0_u8; mod_size as usize / 2];
-    // let mut dmp1: Vec<u8> = vec![0_u8; mod_size as usize / 2];
-    // let mut dmq1: Vec<u8> = vec![0_u8; mod_size as usize / 2];
-    // let mut iqmp: Vec<u8> = vec![0_u8; mod_size as usize / 2];
-
-    // let privkey = SgxRsaPrivKey::new();
-    // let pubkey = SgxRsaPubKey::new();
-
-    
-    // let result1 = pubkey.create(mod_size,
-    //                            exp_size,
-    //                            n.as_slice(),
-    //                            e.as_slice());
-    // let result2 = privkey.create(mod_size,
-    //                             exp_size,
-    //                             e.as_slice(),
-    //                             p.as_slice(),
-    //                             q.as_slice(),
-    //                             dmp1.as_slice(),
-    //                             dmq1.as_slice(),
-    //                             iqmp.as_slice());
-
-
-    // print!("{:?}",result1);
-    // print!("{:?}",result2);
-
     let ecc_handle = SgxEccHandle::new();
     let _result = ecc_handle.open();
     let (prv_k, pub_k) = ecc_handle.create_key_pair().unwrap();
