@@ -43,7 +43,6 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
                        &mut misc_attr)
 }
 
-
 fn parse_lidar_pose(file_path: &str) -> [f32; 6] {
     let s = fs::read_to_string(file_path).unwrap();
     let mut lidar_pose: [f32; 6] = [0.0; 6];
