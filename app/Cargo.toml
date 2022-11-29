@@ -17,3 +17,4 @@ sgx_tcrypto_helper = { path = "../../../sgx_tcrypto_helper" }
 sgx_types = { path = "../../../sgx_types" }
 sgx_trts = { path = "../../../sgx_trts" }
 sgx_urts = { path = "../../../sgx_urts" }
+sgx_tstd = { path = "../../../sgx_tstd" }

@@ -19,6 +19,8 @@ extern crate sgx_types;
 extern crate sgx_urts;
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
+use std::io::prelude::*;
+use std::net::TcpStream;
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 

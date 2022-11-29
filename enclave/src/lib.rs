@@ -27,18 +27,21 @@ extern crate sgx_tstd as std;
 extern crate sgx_types;
 extern crate sgx_trts;
 extern crate sgx_tcrypto;
-
+extern crate blake2;
 
 use sgx_types::*;
 use sgx_tcrypto::*;
-use sgx_trts::memeq::ConsttimeMemEq;
+// use sgx_trts::memeq::ConsttimeMemEq;
 use std::vec::Vec;
-use std::ptr;
+// use std::ptr;
 use std::string::String;
 use std::string::ToString;
 use std::io::{self, Write};
 use std::slice;
 use std::collections::HashMap;
+use blake2::{Blake2b, Digest};
+// use sgx_tcrypto::{SgxRsaPrivKey, SgxRsaPubKey};
+// use std::fs;
 
 #[no_mangle]
 pub extern "C" fn say_something(some_string: *const u8, some_len: usize) -> sgx_status_t {
@@ -56,18 +59,52 @@ pub extern "C" fn say_something(some_string: *const u8, some_len: usize) -> sgx_
     // Construct a string from &'static string
     let mut hello_string = String::from(rust_raw_string);
 
+    // let mod_size: i32 = 256;
+    // let exp_size: i32 = 4;
+    // let mut n: Vec<u8> = vec![0_u8; mod_size as usize];
+    // let mut d: Vec<u8> = vec![0_u8; mod_size as usize];
+    // let mut e: Vec<u8> = vec![1, 0, 1, 0];
+    // let mut p: Vec<u8> = vec![0_u8; mod_size as usize / 2];
+    // let mut q: Vec<u8> = vec![0_u8; mod_size as usize / 2];
+    // let mut dmp1: Vec<u8> = vec![0_u8; mod_size as usize / 2];
+    // let mut dmq1: Vec<u8> = vec![0_u8; mod_size as usize / 2];
+    // let mut iqmp: Vec<u8> = vec![0_u8; mod_size as usize / 2];
 
-    let str = String::from("abc");
-    let len = str.len();
-    let output_hash = &mut [u8;32];
+    // let privkey = SgxRsaPrivKey::new();
+    // let pubkey = SgxRsaPubKey::new();
+
     
-    let result = unsafe {
-        calc_sha256(
-            str,
-            len,
-            output_hash
-        );
-    };
+    // let result1 = pubkey.create(mod_size,
+    //                            exp_size,
+    //                            n.as_slice(),
+    //                            e.as_slice());
+    // let result2 = privkey.create(mod_size,
+    //                             exp_size,
+    //                             e.as_slice(),
+    //                             p.as_slice(),
+    //                             q.as_slice(),
+    //                             dmp1.as_slice(),
+    //                             dmq1.as_slice(),
+    //                             iqmp.as_slice());
+
+
+    // print!("{:?}",result1);
+    // print!("{:?}",result2);
+
+    let ecc_handle = SgxEccHandle::new();
+    let _result = ecc_handle.open();
+    let (prv_k, pub_k) = ecc_handle.create_key_pair().unwrap();
+    print!("{:?}", prv_k);
+
+    let mut hasher = Blake2b::new();
+    let data = "";
+    hasher.input(data);
+    // `input` can be called repeatedly and is generic over `AsRef<[u8]>`
+    // hasher.input("String data");
+    // Note that calling `result()` consumes hasher
+    let hash = hasher.result();
+    println!("Result: {:x}", hash);
+    
 
     let mut data_to_send = HashMap::new();
     data_to_send.insert(
@@ -90,32 +127,3 @@ pub extern "C" fn say_something(some_string: *const u8, some_len: usize) -> sgx_
     sgx_status_t::SGX_SUCCESS
 }
 
-pub extern "C" fn calc_sha256(input_str: *const u8,
-                              some_len: usize,
-                              hash: &mut [u8;32]) -> sgx_status_t {
-
-    println!("calc_sha256 invoked!");
-
-    // First, build a slice for input_str
-    let input_slice = unsafe { slice::from_raw_parts(input_str, some_len) };
-
-    // slice::from_raw_parts does not guarantee the length, we need a check
-    if input_slice.len() != some_len {
-        return sgx_status_t::SGX_ERROR_INVALID_PARAMETER;
-    }
-
-    println!("Input string len = {}, input len = {}", input_slice.len(), some_len);
-
-    // Second, convert the vector to a slice and calculate its SHA256
-    let result = rsgx_sha256_slice(&input_slice);
-
-    return result;
-
-    // Third, copy back the result
-    // match result {
-    //     Ok(output_hash) => *hash = output_hash,
-    //     Err(x) => return x
-    // }
-
-    // sgx_status_t::SGX_SUCCESS
-}
