@@ -15,7 +15,8 @@ sgx_types = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 sgx_tstd = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 sgx_trts = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 sgx_tcrypto = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
-blake2 = { git = "https://github.com/mesalock-linux/rustcrypto-hashes-sgx.git" } 
+blake2 = { git = "https://github.com/mesalock-linux/rustcrypto-hashes-sgx.git" }
+ndarray = { git = "https://github.com/mesalock-linux/ndarray-sgx.git" }
 
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
 sgx_align_struct_attribute = { path = "../../../sgx_align_struct_attribute" }

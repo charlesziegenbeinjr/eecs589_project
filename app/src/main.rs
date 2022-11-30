@@ -17,16 +17,20 @@
 
 extern crate sgx_types;
 extern crate sgx_urts;
+extern crate blake2;
+
+
+use blake2::{Blake2b512, Digest};
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
-use std::io::prelude::*;
 use std::net::TcpStream;
+use std::fs;
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
 extern {
     fn say_something(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
-                     some_string: *const u8, len: usize) -> sgx_status_t;
+            lidar: *const f32, points_num: usize) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -45,6 +49,7 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
 
 fn parse_lidar_pose(file_path: &str) -> [f32; 6] {
     let s = fs::read_to_string(file_path).unwrap();
+    let t = s.as_bytes();
     let mut lidar_pose: [f32; 6] = [0.0; 6];
     let tokens: Vec<&str> = s.split(",").collect();
     for (i, token) in tokens.iter().enumerate() {
@@ -53,25 +58,31 @@ fn parse_lidar_pose(file_path: &str) -> [f32; 6] {
     return lidar_pose;
 }
 
-fn parse_lidar(file_path: &str) -> Vec<[f32; 3]> {
+fn parse_lidar(file_path: &str) -> String {
     let s = fs::read_to_string(file_path).unwrap();
-    let mut lidar = Vec::new();
-    let lines: Vec<&str> = s.split("\n").collect();
-    for line in lines.iter() {
-        let xyz_str: Vec<&str> = line.split(",").collect();
-        let mut xyz: [f32; 3] = [0.0; 3];
-        for (j, n) in xyz_str.iter().enumerate() {
-            if n.len() == 0 {
-                break;
-            }
-            if j >= 3 {
-                break;
-            }
-            xyz[j] = n.parse().unwrap();
-        }
-        lidar.push(xyz)
-    }
-    return lidar
+    let t = s.as_bytes();
+    let mut hasher = Blake2b512::new();
+    hasher.update(t);
+    let hash = hasher.finalize();
+    println!("Binary hash: {:?}", hash);
+
+    // let mut lidar = Vec::new();
+    // let lines: Vec<&str> = s.split("\n").collect();
+    // for line in lines.iter() {
+    //     let xyz_str: Vec<&str> = line.split(",").collect();
+    //     let mut xyz: [f32; 3] = [0.0; 3];
+    //     for (j, n) in xyz_str.iter().enumerate() {
+    //         if n.len() == 0 {
+    //             break;
+    //         }
+    //         if j >= 3 {
+    //             break;
+    //         }
+    //         xyz[j] = n.parse().unwrap();
+    //     }
+    //     lidar.push(xyz)
+    // }
+    return s
 }
 
 fn main() {
@@ -90,46 +101,37 @@ fn main() {
 
     let lidar_pose: [f32; 6] = parse_lidar_pose("../test/lidar_pose.txt");
     println!("Loaded lidar pose {:?}", lidar_pose);
-    let lidar_vector: Vec<[f32; 3]> = parse_lidar("../test/lidar.txt");
+    let lidar_vector: String = parse_lidar("../test/lidar.txt");
     let points_num = lidar_vector.len();
     println!("Loaded lidar image {:?}", points_num);
 
-    let mut lidar: [f32; 180000] = [0.0; 180000];
-    for (i, point) in lidar_vector.iter().enumerate() {
-        for j in 0..3 {
-            lidar[i * 3 + j] = point[j];
-        }
-    }
+    // let mut lidar: [f32; 180000] = [0.0; 180000];
+    // for (i, point) in lidar_vector.iter().enumerate() {
+    //     for j in 0..3 {
+    //         lidar[i * 3 + j] = point[j];
+    //     }
+    // }
+
+    // println!("result: {}", lidar as u8);
+    // hash = hasher.result();
+    // println!("Result: {:x}", hash);
 
 
+    // let result = unsafe {
+    //     say_something(enclave.geteid(),
+    //                   &mut retval,
+    //                   lidar.as_ptr() as * const f32,
+    //                   points_num)
+    // };
+    // match result {
+    //     sgx_status_t::SGX_SUCCESS => {},
+    //     _ => {
+    //         println!("[-] ECALL Enclave Failed {}!", result.as_str());
+    //         return;
+    //     }
+    // }
+    // println!("[+] say_something success...");
 
 
-
-
-
-
-
-
-
-
-
-
-    let input_string = String::from("This is a normal world string passed into Enclave!\n");
-    let mut retval = sgx_status_t::SGX_SUCCESS;
-
-    let result = unsafe {
-        say_something(enclave.geteid(),
-                      &mut retval,
-                      input_string.as_ptr() as * const u8,
-                      input_string.len())
-    };
-    match result {
-        sgx_status_t::SGX_SUCCESS => {},
-        _ => {
-            println!("[-] ECALL Enclave Failed {}!", result.as_str());
-            return;
-        }
-    }
-    println!("[+] say_something success...");
     enclave.destroy();
 }
