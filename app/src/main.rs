@@ -17,14 +17,16 @@
 
 extern crate sgx_types;
 extern crate sgx_urts;
+
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
+use std::net::{TcpListener, TcpStream};
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
 extern {
     fn say_something(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
-                     some_string: *const u8, len: usize) -> sgx_status_t;
+                     data: *const u8, len: usize) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -53,8 +55,19 @@ fn main() {
         },
     };
 
-    let input_string = String::from("This is a normal world string passed into Enclave!\n");
+    let input_data;
     let mut retval = sgx_status_t::SGX_SUCCESS;
+    
+    let listener = TcpListener::bind("127.0.0.1:80").unwrap();
+    println!("listening started, ready to accept");
+    for stream in listener.incoming() {
+        thread::spawn(|| {
+            let mut stream = stream.unwrap();
+            stream.write(b"Hello World\r\n").unwrap();
+        });
+    }
+
+
 
     let result = unsafe {
         say_something(enclave.geteid(),
