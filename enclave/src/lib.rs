@@ -42,24 +42,27 @@ use std::io::{self, Write};
 use std::slice;
 use std::collections::HashMap;
 use blake2::{Blake2b, Digest};
-use ndarray::Array;
+
+
 
 
 #[no_mangle]
-pub extern "C" fn say_something(lidar: *const Vec<u8>, points_num: usize) -> sgx_status_t {
-
-    println!("result: {:?}", lidar);
-    // println!("result: {:?}", lidar_pose);
+pub extern "C" fn say_something(lidar: *const u8, points_num: usize) -> sgx_status_t {
+    let str_slice = unsafe { slice::from_raw_parts(lidar, points_num) };
+    println!("Resulting Str_Slice Length: {:?}", str_slice.len());
+    // let mut lidar_deref = *lidar
+    // let lidar_2: &[u8] = lidar.as_ref();
+    // let asref = &str_slice.as_ref()
 
     // let ecc_handle = SgxEccHandle::new();
     // let _result = ecc_handle.open();
     // let (prv_k, pub_k) = ecc_handle.create_key_pair().unwrap();
     // print!("{:?}", prv_k);
-    let s = "Hello, World";
-    let t = s.as_bytes();
-    let mut hasher = Blake2b::new();
 
-    hasher.input(t);
+    // let s = "Hello, World";
+    // let t = s.as_bytes();
+    let mut hasher = Blake2b::new();
+    hasher.input(str_slice);
     // `input` can be called repeatedly and is generic over `AsRef<[u8]>`
     // hasher.input("String data");
     // Note that calling `result()` consumes hasher

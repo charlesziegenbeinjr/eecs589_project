@@ -32,7 +32,7 @@ extern {
     fn say_something(
         eid: sgx_enclave_id_t, 
         retval: *mut sgx_status_t,
-        lidar: *const Vec<u8>, 
+        lidar: *const u8, 
         points_num: usize
     ) -> sgx_status_t;
 }
@@ -51,21 +51,6 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
                        &mut misc_attr)
 }
 
-fn parse_lidar_pose(file_path: &str) -> Vec<u8> {
-    let s = fs::read_to_string(file_path).unwrap();
-    let lidar_pose = s.into_bytes();
-    return lidar_pose;
-}
-
-fn parse_lidar(file_path: &str) -> Vec<u8> {
-    let s = fs::read_to_string(file_path).unwrap();
-    let lidar = s.into_bytes();
-    // let mut hasher = Blake2b512::new();
-    // hasher.update(&t);
-    // let hash = hasher.finalize();
-    // println!("Binary hash: {:#?}", hash);
-    return lidar
-}
 
 fn main() {
     let enclave = match init_enclave() {
@@ -81,15 +66,19 @@ fn main() {
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
-    let mut lidar_vector: Vec<u8> = parse_lidar("../test/lidar.txt");
+    let mut lidar_string: String = fs::read_to_string("../test/lidar.txt").unwrap();
     println!("Parsed Lidar");
+    println!("Parsed Lidar Length {:?}", lidar_string.len());
 
-    let mut lidar_pose: Vec<u8> = parse_lidar_pose("../test/lidar_pose.txt");
+    let mut lidar_pose: String = fs::read_to_string("../test/lidar_pose.txt").unwrap();
     println!("Loaded lidar pose {:?}", lidar_pose);
+    println!("Lidar Pose Length {:?}", lidar_pose.len());
+    // let lidar_concat = [lidar_vector, lidar_pose].concat();
+    // println!("Loaded Lidar");
     
-    let lidar = [lidar_vector, lidar_pose].concat();
-    println!("Loaded Lidar");
-    
+    let lidar = format!("{}{}", lidar_string, lidar_pose);
+    // let lidar: &[u8] = &lidar_concat;
+
     let points_num = lidar.len();
     println!("Loaded lidar image {:?}", points_num);
 
@@ -97,7 +86,7 @@ fn main() {
     let result = unsafe {
         say_something(enclave.geteid(),
                       &mut retval,
-                      lidar.as_ptr() as * const Vec<u8>,
+                      lidar.as_ptr() as * const u8,
                       points_num)
     };
     match result {
