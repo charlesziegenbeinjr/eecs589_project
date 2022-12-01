@@ -46,18 +46,20 @@ use ndarray::Array;
 
 
 #[no_mangle]
-pub extern "C" fn say_something(lidar: *const f32, points_num: usize) -> sgx_status_t {
+pub extern "C" fn say_something(lidar: *const Vec<u8>, points_num: usize) -> sgx_status_t {
 
     println!("result: {:?}", lidar);
+    // println!("result: {:?}", lidar_pose);
 
-    let ecc_handle = SgxEccHandle::new();
-    let _result = ecc_handle.open();
-    let (prv_k, pub_k) = ecc_handle.create_key_pair().unwrap();
+    // let ecc_handle = SgxEccHandle::new();
+    // let _result = ecc_handle.open();
+    // let (prv_k, pub_k) = ecc_handle.create_key_pair().unwrap();
     // print!("{:?}", prv_k);
-
+    let s = "Hello, World";
+    let t = s.as_bytes();
     let mut hasher = Blake2b::new();
-    let data = "";
-    hasher.input(data);
+
+    hasher.input(t);
     // `input` can be called repeatedly and is generic over `AsRef<[u8]>`
     // hasher.input("String data");
     // Note that calling `result()` consumes hasher

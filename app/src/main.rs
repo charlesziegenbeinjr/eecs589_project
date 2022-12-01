@@ -29,8 +29,12 @@ use std::fs;
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
 extern {
-    fn say_something(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
-            lidar: *const f32, points_num: usize) -> sgx_status_t;
+    fn say_something(
+        eid: sgx_enclave_id_t, 
+        retval: *mut sgx_status_t,
+        lidar: *const Vec<u8>, 
+        points_num: usize
+    ) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -47,42 +51,20 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
                        &mut misc_attr)
 }
 
-fn parse_lidar_pose(file_path: &str) -> [f32; 6] {
+fn parse_lidar_pose(file_path: &str) -> Vec<u8> {
     let s = fs::read_to_string(file_path).unwrap();
-    let t = s.as_bytes();
-    let mut lidar_pose: [f32; 6] = [0.0; 6];
-    let tokens: Vec<&str> = s.split(",").collect();
-    for (i, token) in tokens.iter().enumerate() {
-        lidar_pose[i] = token.parse().unwrap();
-    }
+    let lidar_pose = s.into_bytes();
     return lidar_pose;
 }
 
-fn parse_lidar(file_path: &str) -> String {
+fn parse_lidar(file_path: &str) -> Vec<u8> {
     let s = fs::read_to_string(file_path).unwrap();
-    let t = s.as_bytes();
-    let mut hasher = Blake2b512::new();
-    hasher.update(t);
-    let hash = hasher.finalize();
-    println!("Binary hash: {:?}", hash);
-
-    // let mut lidar = Vec::new();
-    // let lines: Vec<&str> = s.split("\n").collect();
-    // for line in lines.iter() {
-    //     let xyz_str: Vec<&str> = line.split(",").collect();
-    //     let mut xyz: [f32; 3] = [0.0; 3];
-    //     for (j, n) in xyz_str.iter().enumerate() {
-    //         if n.len() == 0 {
-    //             break;
-    //         }
-    //         if j >= 3 {
-    //             break;
-    //         }
-    //         xyz[j] = n.parse().unwrap();
-    //     }
-    //     lidar.push(xyz)
-    // }
-    return s
+    let lidar = s.into_bytes();
+    // let mut hasher = Blake2b512::new();
+    // hasher.update(&t);
+    // let hash = hasher.finalize();
+    // println!("Binary hash: {:#?}", hash);
+    return lidar
 }
 
 fn main() {
@@ -98,39 +80,34 @@ fn main() {
     };
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
+    
+    let mut lidar_vector: Vec<u8> = parse_lidar("../test/lidar.txt");
+    println!("Parsed Lidar");
 
-    let lidar_pose: [f32; 6] = parse_lidar_pose("../test/lidar_pose.txt");
+    let mut lidar_pose: Vec<u8> = parse_lidar_pose("../test/lidar_pose.txt");
     println!("Loaded lidar pose {:?}", lidar_pose);
-    let lidar_vector: String = parse_lidar("../test/lidar.txt");
-    let points_num = lidar_vector.len();
+    
+    let lidar = [lidar_vector, lidar_pose].concat();
+    println!("Loaded Lidar");
+    
+    let points_num = lidar.len();
     println!("Loaded lidar image {:?}", points_num);
 
-    // let mut lidar: [f32; 180000] = [0.0; 180000];
-    // for (i, point) in lidar_vector.iter().enumerate() {
-    //     for j in 0..3 {
-    //         lidar[i * 3 + j] = point[j];
-    //     }
-    // }
 
-    // println!("result: {}", lidar as u8);
-    // hash = hasher.result();
-    // println!("Result: {:x}", hash);
-
-
-    // let result = unsafe {
-    //     say_something(enclave.geteid(),
-    //                   &mut retval,
-    //                   lidar.as_ptr() as * const f32,
-    //                   points_num)
-    // };
-    // match result {
-    //     sgx_status_t::SGX_SUCCESS => {},
-    //     _ => {
-    //         println!("[-] ECALL Enclave Failed {}!", result.as_str());
-    //         return;
-    //     }
-    // }
-    // println!("[+] say_something success...");
+    let result = unsafe {
+        say_something(enclave.geteid(),
+                      &mut retval,
+                      lidar.as_ptr() as * const Vec<u8>,
+                      points_num)
+    };
+    match result {
+        sgx_status_t::SGX_SUCCESS => {},
+        _ => {
+            println!("[-] ECALL Enclave Failed {}!", result.as_str());
+            return;
+        }
+    }
+    println!("[+] say_something success...");
 
 
     enclave.destroy();
