@@ -23,7 +23,8 @@ def main():
         if config['stitch']:
             x_dist_threshold, y_dist_threshold = config['dist_threshold']
         if config['downsample']:
-            pcd = downsamplePcd(pcd, x_dist_threshold, y_dist_threshold)      
+            pcd = downsamplePcd(pcd, x_dist_threshold, y_dist_threshold)  
+            pcd = pcd[pcd[:, -1] == 0]    
         if config['stitch']:
             lidar_pose = np.loadtxt(fc['lidar_pose_file_path'], delimiter=fc['lidar_pose_file_delimiter'])
             lidar_poses.append(lidar_pose)
@@ -35,7 +36,15 @@ def main():
         if config['anomaly_detection']:
             voxel_size = config['voxel_size']
             point_count_threshold = config['point_count_threshold']
-            anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold)
+            object_aabb_vertices, AABBs = anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold)
+            for object_aabb_vertice in object_aabb_vertices:
+                c = object_aabb_vertice['color']
+                color = [0, 0, 0]
+                color[c] = 1
+                visualizer.addPolygon(object_aabb_vertice['vertice'], color)
+            for aabb in AABBs:
+                aabb = np.concatenate((aabb, np.ones((aabb.shape[0], 1))), axis=1)
+                visualizer.addPolygon(aabb, [1, 0, 1])
         xyzs, colors = generatePcdListColor(pcds) 
         visualizer.addXyz(xyzs, colors)
         visualizer.show()

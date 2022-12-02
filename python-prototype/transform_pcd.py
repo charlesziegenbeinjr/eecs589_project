@@ -57,10 +57,9 @@ def getRanges(lidar_poses, x_dist_threshold, y_dist_threshold):
         AABB = AABB[:, :2] # 4 x 2 r
         AABBs.append(AABB)
     AABBs = np.array(AABBs)
-    print(AABBs.shape)
     return AABBs # N x 4 x 2
 
-def checkPointInsideRec(yp, xp, AABB):
+def checkPointInsideRec(xp, yp, AABB):
     edges = [
         (AABB[0], AABB[1]),
         (AABB[1], AABB[2]),
@@ -69,25 +68,21 @@ def checkPointInsideRec(yp, xp, AABB):
     ]
     for edge in edges:
         v1, v2 = edge
-        y1, x1 = v1
-        y2, x2 = v2
+        x1, y1 = v1
+        x2, y2 = v2
         D = (x2 - x1) * (yp - y1) - (xp - x1) * (y2 - y1)
-        print(v1, v2, D)
-        print(x1, y1)
-        print(x2, y2)
-        print(xp, yp)
         if D < 0:
             return False
     return True
 
 def pcds2VoxelMaps(pcds, voxel_size, point_count_threshold, x_min, x_max, y_min, y_max, AABBs):
     voxel_maps = []
-    for pcd in pcds:
-        voxel_map = np.zeros(((x_max - x_min) // voxel_size, (y_max - y_min) // voxel_size))
+    for k, pcd in enumerate(pcds):
+        voxel_map = np.zeros(( int((x_max - x_min) // voxel_size) + 1, int((y_max - y_min) // voxel_size) + 1 ))
         point_count = np.zeros_like(voxel_map)
-        for k, xyzc in enumerate(pcd):
+        for xyzc in pcd:
             x, y = xyzc[:2]
-            i, j = (x - x_min) // voxel_size, (y - y_min) // voxel_size
+            i, j = int((x - x_min) // voxel_size), int((y - y_min) // voxel_size)
             point_count[i, j] += 1
             if not checkPointInsideRec(x, y, AABBs[k]):
                 continue
@@ -98,13 +93,39 @@ def pcds2VoxelMaps(pcds, voxel_size, point_count_threshold, x_min, x_max, y_min,
         voxel_maps.append(voxel_map)
     return voxel_maps
 
+def voxelIndex2AABBVertices(voxel_size, x_min, y_min, i, j):
+    x = (i * voxel_size) + x_min
+    y = (j * voxel_size) + y_min
+    return np.array([[x + voxel_size, y + voxel_size, 2],
+                     [x - voxel_size, y + voxel_size, 2],
+                     [x - voxel_size, y - voxel_size, 2],
+                     [x + voxel_size, y - voxel_size, 2]])
+
+def compare(voxel_maps, voxel_size, x_min, y_min):
+    object_aabb_vertices = []
+    for mi, voxel_map in enumerate(voxel_maps):
+        voxel_ids_np = np.where(voxel_map == 2)
+        voxel_ids = []
+        for vi in range(len(voxel_ids_np[0])):
+            i, j = voxel_ids_np[0][vi], voxel_ids_np[1][vi]
+            voxel_ids.append((i, j))
+            object_aabb_vertice = voxelIndex2AABBVertices(voxel_size, x_min, y_min, i, j)
+            object_aabb_vertices.append({'vertice': object_aabb_vertice, 'color': mi})
+    return object_aabb_vertices
+
 def anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold):
     AABBs = getRanges(lidar_poses, x_dist_threshold, y_dist_threshold)
+    print(AABBs)
     x_min, x_max = np.min(AABBs[:, :, 0]), np.max(AABBs[:, :, 0])
     y_min, y_max = np.min(AABBs[:, :, 1]), np.max(AABBs[:, :, 1])
+    voxel_maps = pcds2VoxelMaps(pcds, voxel_size, point_count_threshold, x_min, x_max, y_min, y_max, AABBs)
+    object_aabb_vertices = compare(voxel_maps, voxel_size, x_min, y_min)
+    return object_aabb_vertices, AABBs
 
 if __name__ == '__main__':
-    print(checkPointInsideRec(2.4, 1.1, np.array([[4, 1],
-                                                [2, 1],
-                                                [2, 2],
-                                                [4, 2]])))
+    tests = [[5, 10], [3, 8], [3, 4], [5, 4], [4, 1], [2, -1], [-3, 4], [-5, -4]]
+    for t in tests:
+        print(checkPointInsideRec(t[0], t[1], np.array([[6, 6],
+                                                        [1, 6],
+                                                        [1, 2],
+                                                        [6, 2]])))

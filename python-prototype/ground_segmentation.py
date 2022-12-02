@@ -1,5 +1,4 @@
 import numpy as np
-import pdb
 
 def segmentXyz(xyz, param, z_threshold):
     xy, z = xyz[:, :2], xyz[:, 2].reshape(-1, 1)
@@ -63,7 +62,7 @@ def ransac(xyz, dist_threshold, max_iteraton, batch_size):
 def groundSegmentation(pcd):
     xyz = pcd[:, :3]
     param = ransac(xyz, 0.1, 200, 50)
-    points = segmentXyz(xyz, param, 0.5)
+    points = segmentXyz(xyz, param, 1)
     return points
 
 if __name__ == '__main__':

@@ -40,14 +40,12 @@ class PcdVisualizer():
         line_set.colors = o3d.utility.Vector3dVector(colors)
         self.geometries.append(line_set)
 
-    def addPolygon(self, vertices):
+    def addPolygon(self, vertices, color=[0, 0, 0.5]):
         for i in range(len(vertices)):
             if i == len(vertices) - 1:
                 p1, p2 = vertices[i], vertices[0]
             else:
                 p1, p2 = vertices[i], vertices[i + 1]
-            color = [0, 0, 0]
-            color[i % 3] = 1
             self.addLine(p1, p2, color=color)
 
     def addFrame(self, origin=[0, 0, 0]):
