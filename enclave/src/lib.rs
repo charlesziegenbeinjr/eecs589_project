@@ -32,16 +32,8 @@ extern crate ndarray;
 extern crate hex;
 
 use sgx_types::*;
-use sgx_tcrypto::*;
-// use sgx_trts::memeq::ConsttimeMemEq;
-use std::vec::Vec;
-// use std::ptr;
-use std::string::String;
-use std::string::ToString;
-use std::str;
-use std::io::{self, Write};
+
 use std::slice;
-use std::fmt;
 use blake2::{Blake2b, Digest};
 use hex::encode;
 use std::convert::TryInto;
@@ -63,7 +55,7 @@ pub extern "C" fn say_something(lidar: *const u8, points_num: usize, returned_ha
     println!("Result Length: {:?}", nonconvert_hash.len());
 
     
-    let mut hash: [u8; 64] = nonconvert_hash.as_slice().try_into().expect("Wrong Length");
+    let hash: [u8; 64] = nonconvert_hash.as_slice().try_into().expect("Wrong Length");
     println!("Result After Conversion: {:?}", hash);
     println!("Result Length: {:?}", hash.len());
 

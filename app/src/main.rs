@@ -67,11 +67,11 @@ fn main() {
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
-    let mut lidar_string: String = fs::read_to_string("../test/lidar.txt").unwrap();
+    let lidar_string: String = fs::read_to_string("../test/lidar.txt").unwrap();
     println!("Parsed Lidar");
     println!("Parsed Lidar Length {:?}", lidar_string.len());
 
-    let mut lidar_pose: String = fs::read_to_string("../test/lidar_pose.txt").unwrap();
+    let lidar_pose: String = fs::read_to_string("../test/lidar_pose.txt").unwrap();
     println!("Loaded lidar pose {:?}", lidar_pose);
     println!("Lidar Pose Length {:?}", lidar_pose.len());
     
@@ -82,7 +82,7 @@ fn main() {
     println!("Loaded lidar image {:?}", points_num);
 
     // let mut hash = std::iter::repeat("X").take(64).collect::<String>();
-    let mut hash_app = [0; 64];
+    let hash_app = [0; 64];
     println!("Initial Hash from App:{:?}", hash_app);
 
 
