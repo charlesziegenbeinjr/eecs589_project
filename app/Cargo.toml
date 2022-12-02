@@ -6,6 +6,7 @@ build = "build.rs"
 
 [dependencies]
 blake2 = "0.10"
+hex = "0.4.3"
 sgx_types = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 sgx_urts = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 

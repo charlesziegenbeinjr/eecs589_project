@@ -17,14 +17,14 @@
 
 extern crate sgx_types;
 extern crate sgx_urts;
-extern crate blake2;
+extern crate hex;
 
-
-use blake2::{Blake2b512, Digest};
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 use std::net::TcpStream;
 use std::fs;
+use hex::encode;
+
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
@@ -33,7 +33,8 @@ extern {
         eid: sgx_enclave_id_t, 
         retval: *mut sgx_status_t,
         lidar: *const u8, 
-        points_num: usize
+        points_num: usize,
+        hash: *mut [u8;64]
     ) -> sgx_status_t;
 }
 
@@ -73,22 +74,29 @@ fn main() {
     let mut lidar_pose: String = fs::read_to_string("../test/lidar_pose.txt").unwrap();
     println!("Loaded lidar pose {:?}", lidar_pose);
     println!("Lidar Pose Length {:?}", lidar_pose.len());
-    // let lidar_concat = [lidar_vector, lidar_pose].concat();
-    // println!("Loaded Lidar");
+    
     
     let lidar = format!("{}{}", lidar_string, lidar_pose);
-    // let lidar: &[u8] = &lidar_concat;
-
+    
     let points_num = lidar.len();
     println!("Loaded lidar image {:?}", points_num);
+
+    // let mut hash = std::iter::repeat("X").take(64).collect::<String>();
+    let mut hash_app = [0; 64];
+    println!("Initial Hash from App:{:?}", hash_app);
 
 
     let result = unsafe {
         say_something(enclave.geteid(),
-                      &mut retval,
-                      lidar.as_ptr() as * const u8,
-                      points_num)
+                    &mut retval,
+                    lidar.as_ptr() as * const u8,
+                    points_num,
+                    hash_app.as_ptr() as * mut [u8;64])
     };
+    
+    let to_hex = encode(hash_app);
+    println!("Returned Hash from Enclave in Hex: {:?}", to_hex);
+
     match result {
         sgx_status_t::SGX_SUCCESS => {},
         _ => {

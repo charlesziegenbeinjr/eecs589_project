@@ -29,6 +29,7 @@ extern crate sgx_trts;
 extern crate sgx_tcrypto;
 extern crate blake2;
 extern crate ndarray;
+extern crate hex;
 
 use sgx_types::*;
 use sgx_tcrypto::*;
@@ -40,43 +41,41 @@ use std::string::ToString;
 use std::str;
 use std::io::{self, Write};
 use std::slice;
-use std::collections::HashMap;
+use std::fmt;
 use blake2::{Blake2b, Digest};
+use hex::encode;
+use std::convert::TryInto;
 
 
 
 
 #[no_mangle]
-pub extern "C" fn say_something(lidar: *const u8, points_num: usize) -> sgx_status_t {
+pub extern "C" fn say_something(lidar: *const u8, points_num: usize, returned_hash: &mut [u8;64]) -> sgx_status_t {
     let str_slice = unsafe { slice::from_raw_parts(lidar, points_num) };
     println!("Resulting Str_Slice Length: {:?}", str_slice.len());
-    // let mut lidar_deref = *lidar
-    // let lidar_2: &[u8] = lidar.as_ref();
-    // let asref = &str_slice.as_ref()
-
-    // let ecc_handle = SgxEccHandle::new();
-    // let _result = ecc_handle.open();
-    // let (prv_k, pub_k) = ecc_handle.create_key_pair().unwrap();
-    // print!("{:?}", prv_k);
-
-    // let s = "Hello, World";
-    // let t = s.as_bytes();
+    
     let mut hasher = Blake2b::new();
     hasher.input(str_slice);
-    // `input` can be called repeatedly and is generic over `AsRef<[u8]>`
-    // hasher.input("String data");
-    // Note that calling `result()` consumes hasher
-    let hash = hasher.result();
-    println!("Result: {:x}", hash);
     
+    let nonconvert_hash = hasher.result();
+    println!("Result: {:x}", nonconvert_hash);
+    println!("Result: {:?}", nonconvert_hash);
+    println!("Result Length: {:?}", nonconvert_hash.len());
 
-    let mut data_to_send = HashMap::new();
-    data_to_send.insert(
-        "SHA256_Hash".to_string(),
-        "This is a test string".to_string(),
-    );
+    
+    let mut hash: [u8; 64] = nonconvert_hash.as_slice().try_into().expect("Wrong Length");
+    println!("Result After Conversion: {:?}", hash);
+    println!("Result Length: {:?}", hash.len());
 
- 
+    // println!("Returned Hash {:?}", returned_hash[2]);
+    
+    let encoded_hash = encode(hash);
+    println!("Hash In Hex: {:?}", encoded_hash);
+
+    // let encoded_hash = hash.as_slice();
+
+    *returned_hash = hash;
+     
     sgx_status_t::SGX_SUCCESS
 }
 
