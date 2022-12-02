@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import json
 from ground_segmentation import groundSegmentation
-from transform_pcd import transformPcd2WorldFrame, downsamplePcd
+from transform_pcd import transformPcd2WorldFrame, downsamplePcd, anomalyDetection
 from viz import generatePcdColor, generatePcdListColor, PcdVisualizer
 
 def parseArguments():
@@ -20,8 +20,9 @@ def main():
     for fc in config['files']:
         pcd = np.loadtxt(fc['pcd_file_path'], delimiter=fc['pcd_file_delimiter'])
         pcd = groundSegmentation(pcd) if fc['ground_segmentation'] else pcd
+        if config['stitch']:
+            x_dist_threshold, y_dist_threshold = config['dist_threshold']
         if config['downsample']:
-            x_dist_threshold, y_dist_threshold = config['downsample_dist_threshold']
             pcd = downsamplePcd(pcd, x_dist_threshold, y_dist_threshold)      
         if config['stitch']:
             lidar_pose = np.loadtxt(fc['lidar_pose_file_path'], delimiter=fc['lidar_pose_file_delimiter'])
@@ -31,6 +32,10 @@ def main():
 
     visualizer = PcdVisualizer()
     if config['stitch']:
+        if config['anomaly_detection']:
+            voxel_size = config['voxel_size']
+            point_count_threshold = config['point_count_threshold']
+            anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold)
         xyzs, colors = generatePcdListColor(pcds) 
         visualizer.addXyz(xyzs, colors)
         visualizer.show()
@@ -40,6 +45,10 @@ def main():
             visualizer.addXyz(xyz, color)
             visualizer.addFrame()
             # visualizer.addLine([0, 0, 1], [1, 1, 1])
+            # visualizer.addPolygon([[6, 6, 0],
+            #                       [1, 6, 0],
+            #                       [1, 2, 0],
+            #                       [6, 2, 0]])
             visualizer.show()
 
 if __name__ == '__main__':

@@ -40,6 +40,16 @@ class PcdVisualizer():
         line_set.colors = o3d.utility.Vector3dVector(colors)
         self.geometries.append(line_set)
 
+    def addPolygon(self, vertices):
+        for i in range(len(vertices)):
+            if i == len(vertices) - 1:
+                p1, p2 = vertices[i], vertices[0]
+            else:
+                p1, p2 = vertices[i], vertices[i + 1]
+            color = [0, 0, 0]
+            color[i % 3] = 1
+            self.addLine(p1, p2, color=color)
+
     def addFrame(self, origin=[0, 0, 0]):
         mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(
             size=5, origin=origin)
@@ -50,11 +60,11 @@ class PcdVisualizer():
         viewer.create_window()
         for geometry in self.geometries:
             viewer.add_geometry(geometry)
-        opt = viewer.get_render_option()
+        # opt = viewer.get_render_option()
         # opt.show_coordinate_frame = True
         # opt.background_color = np.asarray([0.5, 0.5, 0.5])
         viewer.run()
         viewer.destroy_window()
 
 if __name__ == '__main__':
-    main()
+    pass    

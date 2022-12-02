@@ -1,7 +1,5 @@
 import numpy as np
 from scipy.spatial.transform import Rotation   
-from viz import vizArray, generatePcdColor
-from ground_segmentation import groundSegmentation
 
 def euler2Matrix(angles):
     r = Rotation.from_euler("xyz", angles, degrees=True)
@@ -45,13 +43,68 @@ def downsamplePcd(pcd, x_dist_threshold, y_dist_threshold):
     filtered_pcd = downsamplePcdAlong1Axis(filtered_pcd, y_dists, y_dist_threshold)
     return filtered_pcd
 
+def getRanges(lidar_poses, x_dist_threshold, y_dist_threshold):
+    aabb = np.array([[x_dist_threshold, y_dist_threshold, 0],
+                     [-x_dist_threshold, y_dist_threshold, 0],
+                     [-x_dist_threshold, -y_dist_threshold, 0],
+                     [x_dist_threshold, -y_dist_threshold, 0]]) # 4 x 3
+    aabb1 = np.concatenate((aabb, np.ones((aabb.shape[0], 1))), axis=1).T # 4 x 4 c
+
+    AABBs = []
+    for lidar_pose in lidar_poses:
+        T_l2w = lidarPose2Matrix(lidar_pose)
+        AABB = (T_l2w @ aabb1).T # 4 x 4 r
+        AABB = AABB[:, :2] # 4 x 2 r
+        AABBs.append(AABB)
+    AABBs = np.array(AABBs)
+    print(AABBs.shape)
+    return AABBs # N x 4 x 2
+
+def checkPointInsideRec(yp, xp, AABB):
+    edges = [
+        (AABB[0], AABB[1]),
+        (AABB[1], AABB[2]),
+        (AABB[2], AABB[3]),
+        (AABB[3], AABB[0])
+    ]
+    for edge in edges:
+        v1, v2 = edge
+        y1, x1 = v1
+        y2, x2 = v2
+        D = (x2 - x1) * (yp - y1) - (xp - x1) * (y2 - y1)
+        print(v1, v2, D)
+        print(x1, y1)
+        print(x2, y2)
+        print(xp, yp)
+        if D < 0:
+            return False
+    return True
+
+def pcds2VoxelMaps(pcds, voxel_size, point_count_threshold, x_min, x_max, y_min, y_max, AABBs):
+    voxel_maps = []
+    for pcd in pcds:
+        voxel_map = np.zeros(((x_max - x_min) // voxel_size, (y_max - y_min) // voxel_size))
+        point_count = np.zeros_like(voxel_map)
+        for k, xyzc in enumerate(pcd):
+            x, y = xyzc[:2]
+            i, j = (x - x_min) // voxel_size, (y - y_min) // voxel_size
+            point_count[i, j] += 1
+            if not checkPointInsideRec(x, y, AABBs[k]):
+                continue
+            elif point_count[i, j] > point_count_threshold * pcd.shape[0]:
+                voxel_map[i, j] = 2
+            else:
+                voxel_map[i, j] = 1
+        voxel_maps.append(voxel_map)
+    return voxel_maps
+
+def anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold):
+    AABBs = getRanges(lidar_poses, x_dist_threshold, y_dist_threshold)
+    x_min, x_max = np.min(AABBs[:, :, 0]), np.max(AABBs[:, :, 0])
+    y_min, y_max = np.min(AABBs[:, :, 1]), np.max(AABBs[:, :, 1])
+
 if __name__ == '__main__':
-    pcd1 = np.loadtxt('/home/ruohuali/Desktop/eecs589_project/opv2v/2005_000069.txt', delimiter=' ')
-    # points1 = groundSegmentation(pcd1)
-    lidar_pose1 = np.loadtxt('/home/ruohuali/Desktop/eecs589_project/opv2v/2005_000069_lidar_pose.txt', delimiter=' ')
-    
-    pcd2 = np.loadtxt('/home/ruohuali/Desktop/eecs589_project/opv2v/2014_000069.txt', delimiter=' ')
-    # points2 = groundSegmentation(pcd2)
-    lidar_pose2 = np.loadtxt('/home/ruohuali/Desktop/eecs589_project/opv2v/2014_000069_lidar_pose.txt', delimiter=' ')
-    
-    stitchTwoPcd(pcd1, pcd2, lidar_pose1, lidar_pose2, np.array([0, 0, 0]))
+    print(checkPointInsideRec(2.4, 1.1, np.array([[4, 1],
+                                                [2, 1],
+                                                [2, 2],
+                                                [4, 2]])))

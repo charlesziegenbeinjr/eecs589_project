@@ -5,17 +5,20 @@
             "pcd_file_delimiter": " ",
             "lidar_pose_file_path": "./opv2v/2005_000069_lidar_pose.txt",
             "lidar_pose_file_delimiter": " ",
-            "ground_segmentation": true
+            "ground_segmentation": false
         },
         {
             "pcd_file_path": "./opv2v/2014_000069.txt",
             "pcd_file_delimiter": " ",
             "lidar_pose_file_path": "./opv2v/2014_000069_lidar_pose.txt",
             "lidar_pose_file_delimiter": " ",
-            "ground_segmentation": true
+            "ground_segmentation": false
         }
     ],
     "stitch": true,
     "downsample": true,
-    "downsample_dist_threshold": [50, 10]
+    "anomaly_detection": true,
+    "dist_threshold": [50, 10],
+    "voxel_size": 0.5,
+    "point_count_threshold": 0.05
 }
