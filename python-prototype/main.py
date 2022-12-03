@@ -13,7 +13,16 @@ def parseArguments():
         config = json.load(f)
     return config
 
+def f():
+    with open('./opv2v/2005_000069.txt') as f:
+        lines = f.readlines()
+        for line in lines:
+            lst = [float(val) for val in line.split()]
+            if -15 < lst[0] < -10 and -10 < lst[1] < -5:
+                print(lst[0] - 6.5, lst[1], lst[2], lst[3])
+
 def main():
+    # f()
     config = parseArguments()
     pcds = []
     lidar_poses = []
@@ -54,10 +63,10 @@ def main():
             visualizer.addXyz(xyz, color)
             visualizer.addFrame()
             # visualizer.addLine([0, 0, 1], [1, 1, 1])
-            # visualizer.addPolygon([[6, 6, 0],
-            #                       [1, 6, 0],
-            #                       [1, 2, 0],
-            #                       [6, 2, 0]])
+            visualizer.addPolygon([[-15, -5, 0],
+                                  [-10, -10, 0],
+                                  [-10, -5, 0],
+                                  [-15, -10, 0]])
             visualizer.show()
 
 if __name__ == '__main__':

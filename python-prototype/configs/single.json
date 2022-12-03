@@ -1,11 +1,11 @@
 {
     "files": [
         {
-            "pcd_file_path": "./opv2v/2005_000069.txt",
+            "pcd_file_path": "./opv2v/2005_000069_anomaly.txt",
             "pcd_file_delimiter": " ",
             "lidar_pose_file_path": "./opv2v/2005_000069_lidar_pose.txt",
             "lidar_pose_file_delimiter": " ",
-            "ground_segmentation": false
+            "ground_segmentation": true
         }
     ],
     "stitch": false,

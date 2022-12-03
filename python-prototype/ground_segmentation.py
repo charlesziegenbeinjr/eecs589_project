@@ -56,13 +56,13 @@ def ransac(xyz, dist_threshold, max_iteraton, batch_size):
         if current_inlier_num > max_inlier_num:
             max_inlier_num = current_inlier_num
             best_param = current_param
-    print(f'final max num {max_inlier_num}')
+    # print(f'final max num {max_inlier_num}')
     return best_param
 
 def groundSegmentation(pcd):
     xyz = pcd[:, :3]
     param = ransac(xyz, 0.1, 200, 50)
-    points = segmentXyz(xyz, param, 1)
+    points = segmentXyz(xyz, param, 0.5)
     return points
 
 if __name__ == '__main__':
