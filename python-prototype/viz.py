@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import open3d as o3d
 
 def generatePcdColor(pcd, coeff):
@@ -47,6 +48,15 @@ class PcdVisualizer():
             else:
                 p1, p2 = vertices[i], vertices[i + 1]
             self.addLine(p1, p2, color=color)
+
+    def addAABBCls(self, object_aabb_cls):
+        aabb, c = object_aabb_cls[:-1], int(object_aabb_cls[-1, 0])
+        h = random.random() * 1
+        vertices = np.concatenate((aabb, np.zeros((aabb.shape[0], 1)) + h), axis=1)
+        color = [0, 0, 0]
+        if c != -1:
+            color[c % 3] = 1        
+        self.addPolygon(vertices, color)
 
     def addFrame(self, origin=[0, 0, 0]):
         mesh_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(

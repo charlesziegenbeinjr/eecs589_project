@@ -93,33 +93,62 @@ def pcds2VoxelMaps(pcds, voxel_size, point_count_threshold, x_min, x_max, y_min,
         voxel_maps.append(voxel_map)
     return voxel_maps
 
-def voxelIndex2AABBVertices(voxel_size, x_min, y_min, i, j):
+def voxelIndex2Xy(voxel_size, x_min, y_min, i, j):
     x = (i * voxel_size) + x_min
     y = (j * voxel_size) + y_min
-    return np.array([[x + voxel_size, y + voxel_size, 2],
-                     [x - voxel_size, y + voxel_size, 2],
-                     [x - voxel_size, y - voxel_size, 2],
-                     [x + voxel_size, y - voxel_size, 2]])
+    return x, y
 
-def compare(voxel_maps, voxel_size, x_min, y_min):
-    object_aabb_vertices = []
+def voxelIndex2AABBCls(voxel_size, x_min, y_min, i, j, cls):
+    x, y = voxelIndex2Xy(voxel_size, x_min, y_min, i, j)
+    return np.array([[x + voxel_size, y + voxel_size],
+                     [x - voxel_size, y + voxel_size],
+                     [x - voxel_size, y - voxel_size],
+                     [x + voxel_size, y - voxel_size],
+                     [cls, 0]])
+
+def checkProximity(voxel_maps, center_i, center_j, radius):
+    for voxel_map in voxel_maps:
+        for i in range(center_i - radius, center_i + radius):
+            for j in range(center_j - radius, center_j + radius):
+                if not(0 < i < voxel_map.shape[0] and 0 < j < voxel_map.shape[1]):
+                    continue
+                elif voxel_map[i, j] == 2:
+                    return True
+    return False
+
+def compare(voxel_maps, voxel_size, x_min, y_min, AABBs):
+    object_aabb_cls_lst = []
     for mi, voxel_map in enumerate(voxel_maps):
         voxel_ids_np = np.where(voxel_map == 2)
         voxel_ids = []
         for vi in range(len(voxel_ids_np[0])):
             i, j = voxel_ids_np[0][vi], voxel_ids_np[1][vi]
             voxel_ids.append((i, j))
-            object_aabb_vertice = voxelIndex2AABBVertices(voxel_size, x_min, y_min, i, j)
-            object_aabb_vertices.append({'vertice': object_aabb_vertice, 'color': mi})
-    return object_aabb_vertices
+            object_aabb_cls = voxelIndex2AABBCls(voxel_size, x_min, y_min, i, j, mi)
+            # object_aabb_cls_lst.append(object_aabb_cls)
+
+            other_voxel_maps = []
+            x, y = voxelIndex2Xy(voxel_size, x_min, y_min, i, j)
+            for mj in range(len(voxel_maps)):
+                if mj == mi:
+                    continue
+                elif not checkPointInsideRec(x, y, AABBs[mj]):
+                    continue
+                else:
+                    other_voxel_maps.append(voxel_maps[mj])
+            if len(other_voxel_maps) > 0:
+                if not checkProximity(other_voxel_maps, i, j, 5):
+                    object_aabb_cls = voxelIndex2AABBCls(voxel_size, x_min, y_min, i, j, -1)
+                    object_aabb_cls_lst.append(object_aabb_cls)
+    return object_aabb_cls_lst
 
 def anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold):
     AABBs = getRanges(lidar_poses, x_dist_threshold, y_dist_threshold)
-    print(AABBs)
+    # print(AABBs)
     x_min, x_max = np.min(AABBs[:, :, 0]), np.max(AABBs[:, :, 0])
     y_min, y_max = np.min(AABBs[:, :, 1]), np.max(AABBs[:, :, 1])
     voxel_maps = pcds2VoxelMaps(pcds, voxel_size, point_count_threshold, x_min, x_max, y_min, y_max, AABBs)
-    object_aabb_vertices = compare(voxel_maps, voxel_size, x_min, y_min)
+    object_aabb_vertices = compare(voxel_maps, voxel_size, x_min, y_min, AABBs)
     return object_aabb_vertices, AABBs
 
 if __name__ == '__main__':

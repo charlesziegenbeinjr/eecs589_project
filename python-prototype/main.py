@@ -13,16 +13,7 @@ def parseArguments():
         config = json.load(f)
     return config
 
-def f():
-    with open('./opv2v/2005_000069.txt') as f:
-        lines = f.readlines()
-        for line in lines:
-            lst = [float(val) for val in line.split()]
-            if -15 < lst[0] < -10 and -10 < lst[1] < -5:
-                print(lst[0] - 6.5, lst[1], lst[2], lst[3])
-
 def main():
-    # f()
     config = parseArguments()
     pcds = []
     lidar_poses = []
@@ -45,12 +36,9 @@ def main():
         if config['anomaly_detection']:
             voxel_size = config['voxel_size']
             point_count_threshold = config['point_count_threshold']
-            object_aabb_vertices, AABBs = anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold)
-            for object_aabb_vertice in object_aabb_vertices:
-                c = object_aabb_vertice['color']
-                color = [0, 0, 0]
-                color[c] = 1
-                visualizer.addPolygon(object_aabb_vertice['vertice'], color)
+            object_aabb_cls_lst, AABBs = anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold)
+            for object_aabb_cls in object_aabb_cls_lst:
+                visualizer.addAABBCls(object_aabb_cls)
             for aabb in AABBs:
                 aabb = np.concatenate((aabb, np.ones((aabb.shape[0], 1))), axis=1)
                 visualizer.addPolygon(aabb, [1, 0, 1])
