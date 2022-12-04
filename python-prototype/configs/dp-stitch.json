@@ -15,6 +15,7 @@
             "ground_segmentation": true
         }
     ],
+    "pure_display": false,
     "stitch": true,
     "downsample": false,
     "anomaly_detection": true,
