@@ -62,25 +62,29 @@ fn main() {
         },
     };
 
-    let input_data;
+    let mut input_data: Vec<u8> = vec![];
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
     let listener = TcpListener::bind("127.0.0.1:80").unwrap();
     println!("listening started, ready to accept");
     for stream in listener.incoming() {
-        thread::spawn(|| {
-            let mut stream = stream.unwrap();
-            stream.write(b"Hello World\r\n").unwrap();
+        thread::spawn(move || {
+            let mut buffer = [0; 1024];
+            loop {
+                let bytes_read = stream.read(&mut buffer)?;
+                input_data.extend_from_slice(&buffer[..bytes_read]);
+            }
         });
     }
-    // 1.pcd 2. pose for ruohua 3.hash
-
-
+    let mut integrity = False;
     let result = unsafe {
         say_something(enclave.geteid(),
                       &mut retval,
-                      input_string.as_ptr() as * const u8,
-                      input_string.len())
+                      input_string[0],
+                      input_string[1],
+                      input_string[2],
+                      integrity,
+                      input_string[3],)
     };
     match result {
         sgx_status_t::SGX_SUCCESS => {},
