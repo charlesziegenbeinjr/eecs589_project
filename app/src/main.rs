@@ -14,16 +14,25 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License..
+#![feature(tcp_linger)]
 
 extern crate sgx_types;
 extern crate sgx_urts;
 extern crate hex;
+extern crate serde;
+extern crate serde_json;
 
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
-use std::net::TcpStream;
 use std::fs;
 use hex::encode;
+use std::io::prelude::*;
+use std::net::{TcpStream, SocketAddr};
+use std::thread;
+use std::io::{Read,Write,Error};
+use serde::{Serialize,Deserialize};
+use std::time::Duration;
+// use serde_json;
 
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
@@ -36,6 +45,13 @@ extern {
         points_num: usize,
         hash: *mut [u8;64]
     ) -> sgx_status_t;
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct data_to_send<'a> {
+    lidar: &'a[u8],
+    lidar_pose: &'a[u8],
+    hash: &'a[u8],
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -104,8 +120,50 @@ fn main() {
             return;
         }
     }
+
+    // **********************************************************
+
+    // At this point, we have what we need from encode(),
+    // and we can convert into a &[u8].
+    // To do this, use as_bytes on the to_hex variable
+
+    let lidar_string_asBytes = lidar_string.as_bytes();
+    println!("Converted Lidar PCD To &[u8]");
+    let lidar_pose_asBytes = lidar_pose.as_bytes();
+    println!("Converted Lidar Pose To &[u8]");
+    let hash_to_send = to_hex.as_bytes();
+    println!("Converted Hash To &[u8]");
+    // let check = std::str::from_utf8(hash_to_send).unwrap().to_string();
+
+    let data = data_to_send { lidar: lidar_string_asBytes, 
+                                lidar_pose: lidar_pose_asBytes, 
+                                hash: hash_to_send };
+                                
+    let serialized = serde_json::to_string(&data).unwrap();
+    // println!("serialized = {}", serialized);
+    
     println!("[+] say_something success...");
-
-
+    
+    let connection = send_data(lidar_string_asBytes, lidar_pose_asBytes ,hash_to_send);
+    
     enclave.destroy();
 }
+
+fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
+    let addr = SocketAddr::from(([172, 17, 0, 1], 8080));
+    let mut stream = TcpStream::connect_timeout(&addr,Duration::from_secs(10))?;
+    // let mut stream = TcpStream::connect("172.17.0.1:8080")?;
+    // stream.set_nonblocking(true).expect("failed to initiate non-blocking");
+    // stream.set_linger(Some(Duration::from_secs(10))).expect("set_linger call failed");
+    println!("Outgoing Connection Started");
+    stream.write(&lidar[0..lidar.len()/1000])?;
+    // stream.write(lidar_pose)?;
+    // stream.write(hash)?;
+    stream.flush()?;
+    Ok(())
+}
+    
+    // let mut stream = TcpStream::connect("https://cbzjr.com")?;
+    // stream.write(&[1])?;
+    // stream.read(&mut [0; 128])?;
+    // Ok(())
