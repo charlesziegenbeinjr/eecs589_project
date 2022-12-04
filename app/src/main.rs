@@ -25,8 +25,15 @@ use std::net::{TcpListener, TcpStream};
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
 extern {
-    fn say_something(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
-                     data: *const u8, len: usize) -> sgx_status_t;
+    fn say_something(
+        eid: sgx_enclave_id_t,
+        retval: *mut sgx_status_t,
+        lidar: *const u8, 
+        points_num: usize,
+        hash: *const u8,
+        integrity: mut bool,
+        pose: *const u8,
+    ) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -66,7 +73,7 @@ fn main() {
             stream.write(b"Hello World\r\n").unwrap();
         });
     }
-
+    // 1.pcd 2. pose for ruohua 3.hash
 
 
     let result = unsafe {
