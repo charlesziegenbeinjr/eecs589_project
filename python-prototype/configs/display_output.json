@@ -1,0 +1,13 @@
+{
+    "files": [
+        {
+            "pcd_file_path": "/home/ruohuali/Desktop/output.txt",
+            "pcd_file_delimiter": ",",
+            "ground_segmentation": false
+        }
+    ],
+    "pure_display": true,
+    "stitch": false,
+    "downsample": false,
+    "anomaly_detection": false    
+}

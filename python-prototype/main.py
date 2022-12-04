@@ -32,7 +32,13 @@ def main():
         pcds.append(pcd)
 
     visualizer = PcdVisualizer()
-    if config['stitch']:
+    if config['pure_display']:
+        for pcd in pcds:
+            xyz, color = generatePcdColor(pcd, 0.5)
+            visualizer.addXyz(xyz, color)
+            visualizer.addFrame()
+            visualizer.show()
+    elif config['stitch']:
         if config['anomaly_detection']:
             voxel_size = config['voxel_size']
             point_count_threshold = config['point_count_threshold']
