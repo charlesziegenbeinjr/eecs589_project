@@ -19,16 +19,16 @@ def main():
     lidar_poses = []
     for fc in config['files']:
         pcd = np.loadtxt(fc['pcd_file_path'], delimiter=fc['pcd_file_delimiter'])
-        pcd = groundSegmentation(pcd) if fc['ground_segmentation'] else pcd
-        if config['stitch']:
-            x_dist_threshold, y_dist_threshold = config['dist_threshold']
-        if config['downsample']:
-            pcd = downsamplePcd(pcd, x_dist_threshold, y_dist_threshold)  
-            pcd = pcd[pcd[:, -1] == 0]    
         if config['stitch']:
             lidar_pose = np.loadtxt(fc['lidar_pose_file_path'], delimiter=fc['lidar_pose_file_delimiter'])
             lidar_poses.append(lidar_pose)
-            pcd = transformPcd2WorldFrame(pcd, lidar_pose)
+            pcd = transformPcd2WorldFrame(pcd, lidar_pose)        
+        if fc['ground_segmentation']:
+            pcd = groundSegmentation(pcd)
+        if config['stitch']:
+            x_dist_threshold, y_dist_threshold = config['dist_threshold']
+        if config['downsample']:
+            pcd = downsamplePcd(pcd, x_dist_threshold, y_dist_threshold)      
         pcds.append(pcd)
 
     visualizer = PcdVisualizer()

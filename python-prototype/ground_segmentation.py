@@ -63,6 +63,7 @@ def groundSegmentation(pcd):
     xyz = pcd[:, :3]
     param = ransac(xyz, 0.1, 200, 50)
     points = segmentXyz(xyz, param, 0.5)
+    points = points[points[:, -1] == 0]
     return points
 
 if __name__ == '__main__':

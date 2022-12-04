@@ -83,13 +83,13 @@ def pcds2VoxelMaps(pcds, voxel_size, point_count_threshold, x_min, x_max, y_min,
         for xyzc in pcd:
             x, y = xyzc[:2]
             i, j = int((x - x_min) // voxel_size), int((y - y_min) // voxel_size)
-            point_count[i, j] += 1
             if not checkPointInsideRec(x, y, AABBs[k]):
                 continue
             elif point_count[i, j] > point_count_threshold * pcd.shape[0]:
                 voxel_map[i, j] = 2
             else:
                 voxel_map[i, j] = 1
+                point_count[i, j] += 1
         voxel_maps.append(voxel_map)
     return voxel_maps
 
