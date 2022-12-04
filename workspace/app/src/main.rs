@@ -28,7 +28,9 @@ static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
 extern {
     fn process_lidar(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
-                     lidar: *const f32, points_num: usize, retptr: *const f32) -> sgx_status_t;
+                     lidar1: *const f32, points_num1: usize, lidar_pose1: *const f32,
+                     lidar2: *const f32, points_num2: usize, lidar_pose2: *const f32,  
+                     retptr: *const f32) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -48,7 +50,7 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
 fn parse_lidar_pose(file_path: &str) -> [f32; 6] {
     let s = fs::read_to_string(file_path).unwrap();
     let mut lidar_pose: [f32; 6] = [0.0; 6];
-    let tokens: Vec<&str> = s.split(",").collect();
+    let tokens: Vec<&str> = s.split(" ").collect();
     for (i, token) in tokens.iter().enumerate() {
         lidar_pose[i] = token.parse().unwrap();
     }
@@ -60,7 +62,7 @@ fn parse_lidar(file_path: &str) -> Vec<[f32; 3]> {
     let mut lidar = Vec::new();
     let lines: Vec<&str> = s.split("\n").collect();
     for line in lines.iter() {
-        let xyz_str: Vec<&str> = line.split(",").collect();
+        let xyz_str: Vec<&str> = line.split(" ").collect();
         let mut xyz: [f32; 3] = [0.0; 3];
         for (j, n) in xyz_str.iter().enumerate() {
             if n.len() == 0 {
@@ -101,6 +103,21 @@ fn write_2_lidar_text(file_path: &str, arr: &mut[f32]) {
     }
 }
 
+fn read_lidar_info(pcd_file_path: &str, lidar_pose_file_path: &str) -> ([f32; 180000], [f32; 6], usize) {
+    let lidar_pose: [f32; 6] = parse_lidar_pose(lidar_pose_file_path);
+    let lidar_vector: Vec<[f32; 3]> = parse_lidar(pcd_file_path);
+    let points_num = lidar_vector.len();
+
+    let mut lidar: [f32; 180000] = [0.0; 180000];
+    for (i, point) in lidar_vector.iter().enumerate() {
+        for j in 0..3 {
+            lidar[i * 3 + j] = point[j];
+        }
+    }
+
+    return (lidar, lidar_pose, points_num);
+}
+
 fn main() {
     let enclave = match init_enclave() {
         Ok(r) => {
@@ -115,18 +132,10 @@ fn main() {
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
 
-    let lidar_pose: [f32; 6] = parse_lidar_pose("../test/lidar_pose.txt");
-    println!("Loaded lidar pose {:?}", lidar_pose);
-    let lidar_vector: Vec<[f32; 3]> = parse_lidar("../test/lidar.txt");
-    let points_num = lidar_vector.len();
-    println!("Loaded lidar image {:?}", points_num);
-
-    let mut lidar: [f32; 180000] = [0.0; 180000];
-    for (i, point) in lidar_vector.iter().enumerate() {
-        for j in 0..3 {
-            lidar[i * 3 + j] = point[j];
-        }
-    }
+    let (lidar1, lidar_pose1, points_num1) = read_lidar_info("../opv2v/2005_000069_anomaly.txt",
+                                                        "../opv2v/2005_000069_lidar_pose.txt");    
+    let (lidar2, lidar_pose2, points_num2) = read_lidar_info("../opv2v/2014_000069.txt",
+                                                        "../opv2v/2014_000069_lidar_pose.txt");            
 
     const retsize:usize = 180000 + (180000 / 3);
     let mut retarr: [f32; retsize] = [2.0; retsize];
@@ -135,8 +144,12 @@ fn main() {
     let result = unsafe {
         process_lidar(enclave.geteid(),
                       &mut retval,
-                      lidar.as_ptr() as *const f32,
-                      points_num,
+                      lidar1.as_ptr() as *const f32,
+                      points_num1,
+                      lidar_pose1.as_ptr() as *const f32,
+                      lidar2.as_ptr() as *const f32,
+                      points_num2,
+                      lidar_pose2.as_ptr() as *const f32,
                       retarr.as_ptr() as *const f32)
     };
     println!("after result");

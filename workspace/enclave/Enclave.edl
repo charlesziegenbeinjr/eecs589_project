@@ -23,6 +23,6 @@ enclave {
     
     trusted {
         /* define ECALLs here. */
-        public sgx_status_t process_lidar([in, count=180000] const float* lidar, size_t points_num, [out, count=240000] float* retptr);
+        public sgx_status_t process_lidar([in, count=180000] const float* lidar1, size_t points_num1, [in, count=10] const float* lidar_pose1, [in, count=180000] const float* lidar2, size_t points_num2, [in, count=10] const float* lidar_pose2, [out, count=240000] float* retptr);
     };
 };

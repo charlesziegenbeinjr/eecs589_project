@@ -278,7 +278,7 @@ int SGX_UBRIDGE(SGX_CDECL, sgx_thread_setwait_untrusted_events_ocall, (const voi
 int SGX_UBRIDGE(SGX_CDECL, sgx_thread_set_multiple_untrusted_events_ocall, (const void** waiters, size_t total));
 #endif
 
-sgx_status_t process_lidar(sgx_enclave_id_t eid, sgx_status_t* retval, const float* lidar, size_t points_num, float* retptr);
+sgx_status_t process_lidar(sgx_enclave_id_t eid, sgx_status_t* retval, const float* lidar1, size_t points_num1, const float* lidar_pose1, const float* lidar2, size_t points_num2, const float* lidar_pose2, float* retptr);
 sgx_status_t t_global_init_ecall(sgx_enclave_id_t eid, uint64_t id, const uint8_t* path, size_t len);
 sgx_status_t t_global_exit_ecall(sgx_enclave_id_t eid);
 

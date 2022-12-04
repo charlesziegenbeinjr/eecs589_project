@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-sgx_status_t process_lidar(const float* lidar, size_t points_num, float* retptr);
+sgx_status_t process_lidar(const float* lidar1, size_t points_num1, const float* lidar_pose1, const float* lidar2, size_t points_num2, const float* lidar_pose2, float* retptr);
 void t_global_init_ecall(uint64_t id, const uint8_t* path, size_t len);
 void t_global_exit_ecall(void);
 

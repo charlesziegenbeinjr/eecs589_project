@@ -3,8 +3,12 @@
 
 typedef struct ms_process_lidar_t {
 	sgx_status_t ms_retval;
-	const float* ms_lidar;
-	size_t ms_points_num;
+	const float* ms_lidar1;
+	size_t ms_points_num1;
+	const float* ms_lidar_pose1;
+	const float* ms_lidar2;
+	size_t ms_points_num2;
+	const float* ms_lidar_pose2;
 	float* ms_retptr;
 } ms_process_lidar_t;
 
@@ -1056,12 +1060,16 @@ static const struct {
 		(void*)Enclave_sgx_thread_set_multiple_untrusted_events_ocall,
 	}
 };
-sgx_status_t process_lidar(sgx_enclave_id_t eid, sgx_status_t* retval, const float* lidar, size_t points_num, float* retptr)
+sgx_status_t process_lidar(sgx_enclave_id_t eid, sgx_status_t* retval, const float* lidar1, size_t points_num1, const float* lidar_pose1, const float* lidar2, size_t points_num2, const float* lidar_pose2, float* retptr)
 {
 	sgx_status_t status;
 	ms_process_lidar_t ms;
-	ms.ms_lidar = lidar;
-	ms.ms_points_num = points_num;
+	ms.ms_lidar1 = lidar1;
+	ms.ms_points_num1 = points_num1;
+	ms.ms_lidar_pose1 = lidar_pose1;
+	ms.ms_lidar2 = lidar2;
+	ms.ms_points_num2 = points_num2;
+	ms.ms_lidar_pose2 = lidar_pose2;
 	ms.ms_retptr = retptr;
 	status = sgx_ecall(eid, 0, &ocall_table_Enclave, &ms);
 	if (status == SGX_SUCCESS && retval) *retval = ms.ms_retval;

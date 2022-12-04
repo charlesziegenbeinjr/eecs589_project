@@ -29,8 +29,12 @@
 
 typedef struct ms_process_lidar_t {
 	sgx_status_t ms_retval;
-	const float* ms_lidar;
-	size_t ms_points_num;
+	const float* ms_lidar1;
+	size_t ms_points_num1;
+	const float* ms_lidar_pose1;
+	const float* ms_lidar2;
+	size_t ms_points_num2;
+	const float* ms_lidar_pose2;
 	float* ms_retptr;
 } ms_process_lidar_t;
 
@@ -507,15 +511,39 @@ static sgx_status_t SGX_CDECL sgx_process_lidar(void* pms)
 	sgx_lfence();
 	ms_process_lidar_t* ms = SGX_CAST(ms_process_lidar_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
-	const float* _tmp_lidar = ms->ms_lidar;
-	size_t _len_lidar = 180000 * sizeof(float);
-	float* _in_lidar = NULL;
+	const float* _tmp_lidar1 = ms->ms_lidar1;
+	size_t _len_lidar1 = 180000 * sizeof(float);
+	float* _in_lidar1 = NULL;
+	const float* _tmp_lidar_pose1 = ms->ms_lidar_pose1;
+	size_t _len_lidar_pose1 = 10 * sizeof(float);
+	float* _in_lidar_pose1 = NULL;
+	const float* _tmp_lidar2 = ms->ms_lidar2;
+	size_t _len_lidar2 = 180000 * sizeof(float);
+	float* _in_lidar2 = NULL;
+	const float* _tmp_lidar_pose2 = ms->ms_lidar_pose2;
+	size_t _len_lidar_pose2 = 10 * sizeof(float);
+	float* _in_lidar_pose2 = NULL;
 	float* _tmp_retptr = ms->ms_retptr;
 	size_t _len_retptr = 240000 * sizeof(float);
 	float* _in_retptr = NULL;
 
-	if (sizeof(*_tmp_lidar) != 0 &&
-		180000 > (SIZE_MAX / sizeof(*_tmp_lidar))) {
+	if (sizeof(*_tmp_lidar1) != 0 &&
+		180000 > (SIZE_MAX / sizeof(*_tmp_lidar1))) {
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
+
+	if (sizeof(*_tmp_lidar_pose1) != 0 &&
+		10 > (SIZE_MAX / sizeof(*_tmp_lidar_pose1))) {
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
+
+	if (sizeof(*_tmp_lidar2) != 0 &&
+		180000 > (SIZE_MAX / sizeof(*_tmp_lidar2))) {
+		return SGX_ERROR_INVALID_PARAMETER;
+	}
+
+	if (sizeof(*_tmp_lidar_pose2) != 0 &&
+		10 > (SIZE_MAX / sizeof(*_tmp_lidar_pose2))) {
 		return SGX_ERROR_INVALID_PARAMETER;
 	}
 
@@ -524,7 +552,10 @@ static sgx_status_t SGX_CDECL sgx_process_lidar(void* pms)
 		return SGX_ERROR_INVALID_PARAMETER;
 	}
 
-	CHECK_UNIQUE_POINTER(_tmp_lidar, _len_lidar);
+	CHECK_UNIQUE_POINTER(_tmp_lidar1, _len_lidar1);
+	CHECK_UNIQUE_POINTER(_tmp_lidar_pose1, _len_lidar_pose1);
+	CHECK_UNIQUE_POINTER(_tmp_lidar2, _len_lidar2);
+	CHECK_UNIQUE_POINTER(_tmp_lidar_pose2, _len_lidar_pose2);
 	CHECK_UNIQUE_POINTER(_tmp_retptr, _len_retptr);
 
 	//
@@ -532,19 +563,73 @@ static sgx_status_t SGX_CDECL sgx_process_lidar(void* pms)
 	//
 	sgx_lfence();
 
-	if (_tmp_lidar != NULL && _len_lidar != 0) {
-		if ( _len_lidar % sizeof(*_tmp_lidar) != 0)
+	if (_tmp_lidar1 != NULL && _len_lidar1 != 0) {
+		if ( _len_lidar1 % sizeof(*_tmp_lidar1) != 0)
 		{
 			status = SGX_ERROR_INVALID_PARAMETER;
 			goto err;
 		}
-		_in_lidar = (float*)malloc(_len_lidar);
-		if (_in_lidar == NULL) {
+		_in_lidar1 = (float*)malloc(_len_lidar1);
+		if (_in_lidar1 == NULL) {
 			status = SGX_ERROR_OUT_OF_MEMORY;
 			goto err;
 		}
 
-		if (memcpy_s(_in_lidar, _len_lidar, _tmp_lidar, _len_lidar)) {
+		if (memcpy_s(_in_lidar1, _len_lidar1, _tmp_lidar1, _len_lidar1)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_lidar_pose1 != NULL && _len_lidar_pose1 != 0) {
+		if ( _len_lidar_pose1 % sizeof(*_tmp_lidar_pose1) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_lidar_pose1 = (float*)malloc(_len_lidar_pose1);
+		if (_in_lidar_pose1 == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_lidar_pose1, _len_lidar_pose1, _tmp_lidar_pose1, _len_lidar_pose1)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_lidar2 != NULL && _len_lidar2 != 0) {
+		if ( _len_lidar2 % sizeof(*_tmp_lidar2) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_lidar2 = (float*)malloc(_len_lidar2);
+		if (_in_lidar2 == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_lidar2, _len_lidar2, _tmp_lidar2, _len_lidar2)) {
+			status = SGX_ERROR_UNEXPECTED;
+			goto err;
+		}
+
+	}
+	if (_tmp_lidar_pose2 != NULL && _len_lidar_pose2 != 0) {
+		if ( _len_lidar_pose2 % sizeof(*_tmp_lidar_pose2) != 0)
+		{
+			status = SGX_ERROR_INVALID_PARAMETER;
+			goto err;
+		}
+		_in_lidar_pose2 = (float*)malloc(_len_lidar_pose2);
+		if (_in_lidar_pose2 == NULL) {
+			status = SGX_ERROR_OUT_OF_MEMORY;
+			goto err;
+		}
+
+		if (memcpy_s(_in_lidar_pose2, _len_lidar_pose2, _tmp_lidar_pose2, _len_lidar_pose2)) {
 			status = SGX_ERROR_UNEXPECTED;
 			goto err;
 		}
@@ -564,7 +649,7 @@ static sgx_status_t SGX_CDECL sgx_process_lidar(void* pms)
 		memset((void*)_in_retptr, 0, _len_retptr);
 	}
 
-	ms->ms_retval = process_lidar((const float*)_in_lidar, ms->ms_points_num, _in_retptr);
+	ms->ms_retval = process_lidar((const float*)_in_lidar1, ms->ms_points_num1, (const float*)_in_lidar_pose1, (const float*)_in_lidar2, ms->ms_points_num2, (const float*)_in_lidar_pose2, _in_retptr);
 	if (_in_retptr) {
 		if (memcpy_s(_tmp_retptr, _len_retptr, _in_retptr, _len_retptr)) {
 			status = SGX_ERROR_UNEXPECTED;
@@ -573,7 +658,10 @@ static sgx_status_t SGX_CDECL sgx_process_lidar(void* pms)
 	}
 
 err:
-	if (_in_lidar) free(_in_lidar);
+	if (_in_lidar1) free(_in_lidar1);
+	if (_in_lidar_pose1) free(_in_lidar_pose1);
+	if (_in_lidar2) free(_in_lidar2);
+	if (_in_lidar_pose2) free(_in_lidar_pose2);
 	if (_in_retptr) free(_in_retptr);
 	return status;
 }
