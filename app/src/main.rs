@@ -32,6 +32,8 @@ use std::thread;
 use std::io::{Read,Write,Error};
 use serde::{Serialize,Deserialize};
 use std::time::Duration;
+use std::time::Instant;
+    
 // use serde_json;
 
 
@@ -70,6 +72,10 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
 
 
 fn main() {
+    // Start the Timing for the System Here...
+    let now = Instant::now();
+
+    // Initialize the Enclave
     let enclave = match init_enclave() {
         Ok(r) => {
             println!("[+] Init Enclave Successful {}!", r.geteid());
@@ -84,7 +90,7 @@ fn main() {
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
     let lidar_string: String = fs::read_to_string("../test/lidar.txt").unwrap();
-    println!("Parsed Lidar");
+    println!("Parsed Lidar: {:?}", lidar_string);
     println!("Parsed Lidar Length {:?}", lidar_string.len());
 
     let lidar_pose: String = fs::read_to_string("../test/lidar_pose.txt").unwrap();
@@ -146,6 +152,8 @@ fn main() {
     
     let connection = send_data(lidar_string_asBytes, lidar_pose_asBytes ,hash_to_send);
     
+    let elapsed = now.elapsed();
+    println!("Execution Time: {:.2?}", elapsed);
     enclave.destroy();
 }
 
@@ -157,9 +165,11 @@ fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
     // stream.set_linger(Some(Duration::from_secs(10))).expect("set_linger call failed");
     println!("Outgoing Connection Started");
     stream.write(lidar)?;
-    stream.write(lidar_pose)?;
-    stream.write(hash)?;
     stream.flush()?;
+    // stream.write(lidar_pose)?;
+    // stream.flush()?;
+    // stream.write(hash)?;
+    // stream.flush()?;
     Ok(())
 }
     
