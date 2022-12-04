@@ -156,9 +156,9 @@ fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
     // stream.set_nonblocking(true).expect("failed to initiate non-blocking");
     // stream.set_linger(Some(Duration::from_secs(10))).expect("set_linger call failed");
     println!("Outgoing Connection Started");
-    stream.write(&lidar[0..lidar.len()/1000])?;
-    // stream.write(lidar_pose)?;
-    // stream.write(hash)?;
+    stream.write(lidar)?;
+    stream.write(lidar_pose)?;
+    stream.write(hash)?;
     stream.flush()?;
     Ok(())
 }
