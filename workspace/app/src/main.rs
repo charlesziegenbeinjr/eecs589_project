@@ -114,7 +114,7 @@ fn write_2_xy_text(file_path: &str, arr: &mut[f32]) {
 
     for line_idx in 0..arr.len() / 2 {
         let string = arr[line_idx * 2].to_string() + ","
-                    + &arr[line_idx * 2 + 1].to_string() + ",";
+                    + &arr[line_idx * 2 + 1].to_string();
         if let Err(e) = writeln!(file, "{}", string) {
             eprintln!("Couldn't write to file: {}", e);
         }
@@ -172,10 +172,14 @@ fn main() {
     };
     println!("after result");
 
+    // unsafe {
+    //     write_2_lidar_text("../test/output.txt", &mut retarr);
+    //     println!("after write");
+    // }
     unsafe {
-        write_2_lidar_text("../test/output.txt", &mut retarr);
+        write_2_xy_text("../test/output.txt", &mut retarr);
         println!("after write");
-    }
+    }    
     
     match result {
         sgx_status_t::SGX_SUCCESS => {},
