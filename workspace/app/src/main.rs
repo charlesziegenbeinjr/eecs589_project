@@ -103,6 +103,24 @@ fn write_2_lidar_text(file_path: &str, arr: &mut[f32]) {
     }
 }
 
+fn write_2_xy_text(file_path: &str, arr: &mut[f32]) {
+    create_file(file_path);
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(file_path)
+        .unwrap();
+
+    for line_idx in 0..arr.len() / 2 {
+        let string = arr[line_idx * 2].to_string() + ","
+                    + &arr[line_idx * 2 + 1].to_string() + ",";
+        if let Err(e) = writeln!(file, "{}", string) {
+            eprintln!("Couldn't write to file: {}", e);
+        }
+    }
+}
+
 fn read_lidar_info(pcd_file_path: &str, lidar_pose_file_path: &str) -> ([f32; 180000], [f32; 6], usize) {
     let lidar_pose: [f32; 6] = parse_lidar_pose(lidar_pose_file_path);
     let lidar_vector: Vec<[f32; 3]> = parse_lidar(pcd_file_path);
@@ -137,7 +155,7 @@ fn main() {
     let (lidar2, lidar_pose2, points_num2) = read_lidar_info("../opv2v/2014_000069.txt",
                                                         "../opv2v/2014_000069_lidar_pose.txt");            
 
-    const retsize:usize = 180000 + (180000 / 3);
+    const retsize:usize = 540000 + (180000 / 3);
     let mut retarr: [f32; retsize] = [2.0; retsize];
     println!("allocated {}", retarr.len());
     // println!("11 {:?}", retarr);

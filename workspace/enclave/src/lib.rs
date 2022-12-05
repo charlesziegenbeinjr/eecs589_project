@@ -70,6 +70,17 @@ fn prepare_retptr(pcd: Matrix::<f32>, retptr: *mut f32) {
     }
 }
 
+fn pretty_print_matrix(mat: Matrix::<f32>) {
+    println!("================================");
+    for i in 0..mat.rows() {
+        for j in 0.. mat.cols() {
+            print!("{:?}  ", mat[[i, j]]);
+        }
+        print!("\n---\n");
+    }
+    println!("================================");
+}
+
 fn sample_ids(n: i32, min:usize, max:usize) -> Vec<usize> {
     let mut rng = rand::thread_rng();
     let mut vec = Vec::new();
@@ -236,14 +247,11 @@ fn rotation_matrix_z(angle_in_degrees: f32) -> Matrix::<f32> {
 }
 
 fn euler_values_2_matrix(angle_x_in_degrees: f32, angle_y_in_degrees: f32, angle_z_in_degrees: f32) -> Matrix::<f32> {
-    println!("a {:?}, {:?}, {:?}", angle_x_in_degrees, angle_y_in_degrees, angle_z_in_degrees);
-
     let R_x = rotation_matrix_x(angle_x_in_degrees);
     let R_y = rotation_matrix_x(angle_y_in_degrees);
     let R_z = rotation_matrix_x(angle_z_in_degrees);
 
     let R_3 = R_z * R_y * R_x;
-    println!("r3 {:?}", R_3);
     let R = Matrix::new(4, 4, vec![R_3[[0, 0]], R_3[[0, 1]], R_3[[0, 2]], 0.0,
                                    R_3[[1, 0]], R_3[[1, 1]], R_3[[1, 2]], 0.0,
                                    R_3[[2, 0]], R_3[[2, 1]], R_3[[2, 2]], 0.0,
@@ -271,9 +279,6 @@ fn lidar_pose_2_matrix(lidar_pose: Matrix::<f32>) -> Matrix::<f32> {
 }
 
 fn transform_pcd_2_world_frame(pcd: Matrix::<f32>, lidar_pose: Matrix::<f32>) -> Matrix::<f32> {
-    /*
-    @return pcd: (N x 3)
-    */
     let ones = Matrix::<f32>::ones(pcd.rows(), 1);
     let pcd1 = pcd.hcat(&ones);
 
@@ -285,11 +290,135 @@ fn transform_pcd_2_world_frame(pcd: Matrix::<f32>, lidar_pose: Matrix::<f32>) ->
     return pcd_w;
 }
 
+fn pad_with_value(pcd: Matrix::<f32>, value: f32) -> Matrix::<f32> {
+    let ones = Matrix::<f32>::ones(pcd.rows(), 1) * value;
+    let padded_pcd = pcd.hcat(&ones);
+    return padded_pcd;
+}
+
+fn getRanges(lidar_poses: Vec<Matrix::<f32>>, x_dist_threshold: f32, y_dist_threshold: f32) -> Vec<Matrix::<f32>> {
+    let aabb = Matrix::new(4, 3, vec![x_dist_threshold,  y_dist_threshold,   0f32,
+                                      -x_dist_threshold, y_dist_threshold,   0f32,
+                                      -x_dist_threshold, -y_dist_threshold,  0f32,
+                                      x_dist_threshold,  -y_dist_threshold,  0f32]);  
+    let padded_aabb = pad_with_value(aabb, 1f32).transpose();
+    let mut AABBs = Vec::new();
+    for i in 0..lidar_poses.len() {
+        let T_l2w = lidar_pose_2_matrix(lidar_poses[i].clone());
+        let mut AABB = (T_l2w * padded_aabb.clone()).transpose();
+        AABB = MatrixSlice::from_matrix(&AABB, [0, 0], AABB.rows(), 2).into_matrix();
+        AABBs.push(AABB.clone());
+    }
+    return AABBs;
+}
+
+fn get_AABB_min_max(AABBs: Vec<Matrix::<f32>>) -> (f32, f32, f32, f32) {
+    let (mut x_min, mut x_max, mut y_min, mut y_max) = (AABBs[0][[0, 0]], AABBs[0][[0, 0]], AABBs[0][[0, 1]], AABBs[0][[0, 1]]);
+    for i in 0..AABBs.len() {
+        for r in 0..AABBs[0].rows() {
+            if AABBs[i][[r, 0]] < x_min {
+                x_min = AABBs[i][[r, 0]];
+            }
+            if AABBs[i][[r, 0]] > x_max {
+                x_max = AABBs[i][[r, 0]];
+            }
+            if AABBs[i][[r, 1]] < y_min {
+                y_min = AABBs[i][[r, 1]];
+            }
+            if AABBs[i][[r, 1]] < y_min {
+                y_min = AABBs[i][[r, 1]];
+            }                                    
+        }
+    }
+    return (x_min, x_max, y_min, y_max);
+}
+
+fn check_point_inside_rec(xp: f32, yp:f32, AABB: Matrix::<f32>) -> bool {
+    let edges = [
+        [0, 1],
+        [1, 2],
+        [2, 3],
+        [3, 1]
+    ];
+    for i in 0..4 {
+        let (idx1, idx2) = (edges[i][0], edges[i][1]);
+        let (x1, y1) = (AABB[[idx1, 0]], AABB[[idx1, 1]]);
+        let (x2, y2) = (AABB[[idx2, 0]], AABB[[idx2, 1]]);       
+        let D = (x2 - x1) * (yp - y1) - (xp - x1) * (y2 - y1);
+        if D < 0f32 {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn xy_2_voxel_index(voxel_size: f32, x_min: f32, y_min: f32, x: f32, y: f32) -> (usize, usize) {
+    let i = ((x - x_min) / voxel_size) as usize;
+    let j = ((y - y_min) / voxel_size) as usize;
+    return (i, j);
+}
+
+fn voxel_index_2_xy(voxel_size: f32, x_min: f32, y_min: f32, i: usize, j: usize) -> (f32, f32) {
+    let x = (i as f32 * voxel_size) + x_min;
+    let y = (j as f32 * voxel_size) + y_min;
+    return (x, y);
+}
+
+fn pcd_2_voxel_map(pcd: Matrix::<f32>, voxel_size: f32, point_count_threshold: f32,
+                   x_min: f32, x_max: f32, y_min: f32, y_max: f32, 
+                   AABB: Matrix::<f32>) -> Matrix::<f32> {
+    let (mut row_num, mut col_num) = xy_2_voxel_index(voxel_size, x_min, y_min, x_max, y_max);
+    row_num += 1;
+    col_num += 1;
+    let mut voxel_map = Matrix::<f32>::zeros(row_num, col_num);
+    let mut point_count = Matrix::<f32>::zeros(row_num, col_num);
+
+    for r in 0..pcd.rows() {
+        let (x, y) = (pcd[[r, 0]], pcd[[r, 1]]);
+        let (i, j) = xy_2_voxel_index(voxel_size, x_min, y_min, x, y);
+        
+        if !(check_point_inside_rec(x, y, AABB.clone())) {
+            continue;
+        }
+        else if point_count[[i, j]] > point_count_threshold * (pcd.rows() as f32) {
+            voxel_map[[i, j]] = 2f32;
+        }
+        else {
+            voxel_map[[i, j]] = 1f32;
+            point_count[[i, j]] += 1f32;
+        }
+    }
+    return voxel_map;
+}
+
+fn pcds_2_voxel_maps(pcds: Vec<Matrix::<f32>>, voxel_size: f32, point_count_threshold: f32,
+                     x_min: f32, x_max: f32, y_min: f32, y_max: f32, 
+                     AABBs: Vec<Matrix::<f32>>) -> Vec<Matrix::<f32>> {
+    let mut voxel_maps = Vec::new();
+    for k in 0..pcds.len() {
+        let voxel_map = pcd_2_voxel_map(pcds[k].clone(), voxel_size, point_count_threshold,
+                                        x_min, x_max, y_min, y_max, AABBs[k].clone());
+        voxel_maps.push(voxel_map.clone());
+    }
+    return voxel_maps;
+}
+
+fn anomaly_detection(pcds: Vec<Matrix::<f32>>, lidar_poses: Vec<Matrix::<f32>>,
+                     x_dist_threshold: f32, y_dist_threshold: f32, 
+                     voxel_size: f32, point_count_threshold: f32) -> Matrix::<f32> {
+    let mut AABBs = getRanges(lidar_poses, x_dist_threshold, y_dist_threshold);
+    let (x_min, x_max, y_min, y_max) = get_AABB_min_max(AABBs.clone());
+    let voxel_maps = pcds_2_voxel_maps(pcds.clone(), voxel_size, point_count_threshold,
+                                       x_min, x_max, y_min, y_max, AABBs.clone());
+    return Matrix::<f32>::zeros(1, 1);
+}
+
 #[no_mangle]
 pub extern "C" fn process_lidar(lidar1: *const f32, points_num1: usize, lidar_pose1: *const f32,
                                 lidar2: *const f32, points_num2: usize, lidar_pose2: *const f32,
                                 retptr: *mut f32) -> sgx_status_t {
     // Load lidar image into ndarray structure
+    // ---------------------------------------------------------------
     let pcd1 = prepare_pcd_matrix(lidar1, points_num1);
     let lidar_pose1 = prepare_lidar_pose_matrix(lidar_pose1);
     let pcd2 = prepare_pcd_matrix(lidar2, points_num2);
@@ -297,14 +426,24 @@ pub extern "C" fn process_lidar(lidar1: *const f32, points_num1: usize, lidar_po
 
     let pcd1_w = transform_pcd_2_world_frame(pcd1.clone(), lidar_pose1.clone());
     let pcd2_w = transform_pcd_2_world_frame(pcd2.clone(), lidar_pose2.clone());
+    
+    let mut filtered_pcd1_w = ground_segmentation(pcd1_w);
+    let mut filtered_pcd2_w = ground_segmentation(pcd2_w);
+    // ---------------------------------------------------------------
 
-    let filtered_pcd1_w = ground_segmentation(pcd1_w);
-    let filtered_pcd2_w = ground_segmentation(pcd2_w);
+    let mut pcds = Vec::new();
+    pcds.push(filtered_pcd1_w.clone());
+    pcds.push(filtered_pcd2_w.clone());
+    let mut lidar_poses = Vec::new();
+    lidar_poses.push(lidar_pose1.clone());
+    lidar_poses.push(lidar_pose2.clone());
 
-    let filtered_pcd = filtered_pcd1_w.vcat(&filtered_pcd2_w);
+    anomaly_detection(pcds, lidar_poses,
+                      30f32, 10f32, 0.5, 0.00001);
 
-    let ones = Matrix::<f32>::ones(filtered_pcd.rows(), 1);
-    let cpcd = filtered_pcd.hcat(&ones);
+    let padded_filtered_pcd1_w = pad_with_value(filtered_pcd1_w.clone(), 0f32);
+    let padded_filtered_pcd2_w = pad_with_value(filtered_pcd2_w.clone(), 1f32);
+    let cpcd = padded_filtered_pcd1_w.vcat(&padded_filtered_pcd2_w);
 
     prepare_retptr(cpcd, retptr);
     sgx_status_t::SGX_SUCCESS
