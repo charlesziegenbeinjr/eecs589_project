@@ -157,7 +157,7 @@ fn main() {
 }
 
 fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
-    let addr = SocketAddr::from(([172, 17, 0, 2], 80));
+    let addr = SocketAddr::from(([172, 17, 0, 2], 8080));
     let mut stream = TcpStream::connect_timeout(&addr,Duration::from_secs(10))?;
     // let mut stream = TcpStream::connect("172.17.0.1:8080")?;
     // stream.set_nonblocking(true).expect("failed to initiate non-blocking");
