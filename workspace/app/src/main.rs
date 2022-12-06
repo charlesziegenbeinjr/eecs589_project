@@ -17,15 +17,16 @@
 
 extern crate sgx_types;
 extern crate sgx_urts;
+extern crate hex;
+
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use std::net::{TcpListener, TcpStream};
+use std::net::{TcpListener};
 use std::io::BufReader;
-use std::thread;
 use hex::encode;
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
@@ -35,6 +36,7 @@ extern {
                      lidar1: *const f32, points_num1: usize, lidar_pose1: *const f32,
                      lidar2: *const f32, points_num2: usize, lidar_pose2: *const f32,  
                      retptr: *const f32) -> sgx_status_t;
+    
     fn say_something(
         eid: sgx_enclave_id_t, 
         retval: *mut sgx_status_t,
@@ -99,9 +101,8 @@ fn parse_lidar(file_path: &str) -> Vec<[f32; 3]> {
 }
 
 fn parse_lidar_remote(lidar_remote: &str) -> Vec<[f32; 3]> {
-    let s = fs::read_to_string(file_path).unwrap();
     let mut lidar = Vec::new();
-    let lines: Vec<&str> = s.split("\n").collect();
+    let lines: Vec<&str> = lidar_remote.split("\n").collect();
     for line in lines.iter() {
         let xyz_str: Vec<&str> = line.split(",").collect();
         let mut xyz: [f32; 3] = [0.0; 3];
@@ -178,8 +179,8 @@ fn read_lidar_info(pcd_file_path: &str, lidar_pose_file_path: &str) -> ([f32; 18
 }
 
 fn read_lidar_info_remote(pcd: &str, lidar_pose: &str) -> ([f32; 180000], [f32; 6], usize) {
-    let lidar_pose: [f32; 6] = parse_lidar_pose(lidar_pose);
-    let lidar_vector: Vec<[f32; 3]> = parse_lidar(pcd);
+    let lidar_pose: [f32; 6] = parse_lidar_pose_remote(lidar_pose);
+    let lidar_vector: Vec<[f32; 3]> = parse_lidar_remote(pcd);
     let points_num = lidar_vector.len();
 
     let mut lidar: [f32; 180000] = [0.0; 180000];
@@ -217,7 +218,7 @@ fn main() {
         match stream {
             Err(e) => {eprintln!("Failed: {}", e)}
             Ok(stream) => {
-                for data in BufReader::new(&mut stream).lines() {
+                for data in BufReader::new(&stream).lines() {
                     let header = data.unwrap();
                     if counter == 1{
                         lidar.push_str(&header)
@@ -231,7 +232,8 @@ fn main() {
                 } 
             }
         }
-        increment(&mut counter);
+        counter += 1;
+        // increment(&mut counter);
     }
     
     // let mut integrity = False;
@@ -245,12 +247,12 @@ fn main() {
                     hash_app.as_ptr() as * mut [u8;64])
     };
 
-        match result {
-        sgx_status_t::SGX_SUCCESS => {},
-        _ => {
-            println!("[-] ECALL Enclave Failed {}!", result.as_str());
-            return;
-        }
+    match first_result {
+    sgx_status_t::SGX_SUCCESS => {},
+    _ => {
+        println!("[-] ECALL Enclave Failed {}!", first_result.as_str());
+        return;
+    }
     }
 
     if encode(hash_app) != hash {

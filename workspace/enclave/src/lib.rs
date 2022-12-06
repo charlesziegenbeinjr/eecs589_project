@@ -42,25 +42,6 @@ use blake2::{Blake2b, Digest};
 use hex::encode;
 use std::convert::TryInto;
 
-pub extern "C" fn say_something(lidar: *const u8, points_num: usize, returned_hash: &mut [u8;64]) -> sgx_status_t {
-    let str_slice = unsafe { slice::from_raw_parts(lidar, points_num) };
-    println!("Resulting Str_Slice Length: {:?}", str_slice.len());
-    
-    let mut hasher = Blake2b::new();
-    hasher.input(str_slice);
-    
-    let nonconvert_hash = hasher.result();
-    let hash: [u8; 64] = nonconvert_hash.as_slice().try_into().expect("Wrong Length");
-    
-    // println!("Returned Hash {:?}", returned_hash[2]);
-    
-    let encoded_hash = encode(hash);
-    // let encoded_hash = hash.as_slice();
-    *returned_hash = hash;
-     
-    sgx_status_t::SGX_SUCCESS
-}
-
 fn prepare_pcd_matrix(lidar_ptr: *const f32, points_num:usize) -> Matrix::<f32> {
     let mut pcd = Matrix::<f32>::zeros(points_num, 3);
     let mut index: usize = 0;
@@ -555,5 +536,25 @@ pub extern "C" fn process_lidar(lidar1: *const f32, points_num1: usize, lidar_po
     // let box_coords = Matrix::<f32>::ones(200, 2) * 3.1f32;
 
     prepare_retptr(box_coords, retptr);
+    sgx_status_t::SGX_SUCCESS
+}
+
+#[no_mangle]
+pub extern "C" fn say_something(lidar: *const u8, points_num: usize, returned_hash: &mut [u8;64]) -> sgx_status_t {
+    let str_slice = unsafe { slice::from_raw_parts(lidar, points_num) };
+    println!("Resulting Str_Slice Length: {:?}", str_slice.len());
+    
+    let mut hasher = Blake2b::new();
+    hasher.input(str_slice);
+    
+    let nonconvert_hash = hasher.result();
+    let hash: [u8; 64] = nonconvert_hash.as_slice().try_into().expect("Wrong Length");
+    
+    // println!("Returned Hash {:?}", returned_hash[2]);
+    
+    let encoded_hash = encode(hash);
+    // let encoded_hash = hash.as_slice();
+    *returned_hash = hash;
+     
     sgx_status_t::SGX_SUCCESS
 }
