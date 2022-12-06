@@ -69,7 +69,7 @@ fn main() {
     let mut pose: Vec<u8> = vec![];
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
-    let listener = TcpListener::bind("172.17.0.3:80").unwrap();
+    let listener = TcpListener::bind("172.17.0.2:80").unwrap();
     println!("listening started, ready to accept");
     let mut counter = 0;
     for stream in listener.incoming() {
