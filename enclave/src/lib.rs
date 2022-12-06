@@ -59,12 +59,10 @@ pub extern "C" fn say_something(lidar: *const u8, points_num: usize, returned_ha
     println!("Result After Conversion: {:?}", hash);
     println!("Result Length: {:?}", hash.len());
 
-    // println!("Returned Hash {:?}", returned_hash[2]);
     
     let encoded_hash = encode(hash);
     println!("Hash In Hex: {:?}", encoded_hash);
 
-    // let encoded_hash = hash.as_slice();
     *returned_hash = hash;
      
     sgx_status_t::SGX_SUCCESS

@@ -25,14 +25,21 @@ fn main() {
         }
     }
     // returnas: () = returned;
-    println!("RETURNED {:?}", returned);
     returned.pop();
     returned.pop();
     println!("RETURNED {:?}", returned);
-    println!("HERE");
+    let mut hello = String::new();
+    let mut hellp = String::new();
+    let mut bha = String::new();
     let mut split = returned.split("|");
+    let mut counter = 0;
     for s in split {
-       println!("{:?}", s);
+        if counter == 0 {
+            hello.push_str(&s);
+        } else {
+            println("J");
+        }
+    //    println!("{:?}", s);
     }
 }
 

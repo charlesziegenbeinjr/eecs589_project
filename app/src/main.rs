@@ -19,15 +19,13 @@
 extern crate sgx_types;
 extern crate sgx_urts;
 extern crate hex;
-extern crate serde;
-extern crate serde_json;
 
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 use std::fs;
 use hex::encode;
 use std::io::prelude::*;
-use std::net::{TcpStream, SocketAddr};
+use std::net::{TcpStream, TcpListener, SocketAddr};
 use std::thread;
 use std::io::{Read,Write,Error};
 use std::time::Duration;
@@ -82,15 +80,16 @@ fn main() {
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
     let lidar_string: String = fs::read_to_string("../test/2005_000069_anomaly.txt").unwrap();
-    println!("Parsed Lidar: {:?}", lidar_string);
-    println!("Parsed Lidar Length {:?}", lidar_string.len());
+    let hello: String = lidar_string.replace("\n", "ZZ");
+    println!("Parsed Lidar");
+    println!("Parsed Lidar Length {:?}", hello.len());
 
     let lidar_pose: String = fs::read_to_string("../test/2005_000069_lidar_pose.txt").unwrap();
     println!("Loaded lidar pose {:?}", lidar_pose);
     println!("Lidar Pose Length {:?}", lidar_pose.len());
     
     
-    let lidar = format!("{}{}", lidar_string, lidar_pose);
+    let lidar = format!("{}{}", hello, lidar_pose);
     
     let points_num = lidar.len();
     println!("Loaded lidar image {:?}", points_num);
@@ -124,39 +123,42 @@ fn main() {
     // and we can convert into a &[u8].
     // To do this, use as_bytes on the to_hex variable
 
-    let lidar_string_asBytes = lidar_string.as_bytes();
+    let lidar_string_asBytes = hello.as_bytes();
     println!("Converted Lidar PCD To &[u8]");
     let lidar_pose_asBytes = lidar_pose.as_bytes();
     println!("Converted Lidar Pose To &[u8]");
     let hash_to_send = to_hex.as_bytes();
     println!("Converted Hash To &[u8]");
-    // let check = std::str::from_utf8(hash_to_send).unwrap().to_string();
 
-    let data = data_to_send { lidar: lidar_string_asBytes, 
-                                lidar_pose: lidar_pose_asBytes, 
-                                hash: hash_to_send };
-                                
-    let serialized = serde_json::to_string(&data).unwrap();
-    // println!("serialized = {}", serialized);
-    
     println!("[+] say_something success...");
     
     let connection = send_data(lidar_string_asBytes, lidar_pose_asBytes ,hash_to_send);
     
     let elapsed = now.elapsed();
     println!("Execution Time: {:.2?}", elapsed);
+
+    let listener = TcpListener::bind("172.17.0.2:8080").expect("Error");
+    for stream in listener.incoming() {
+        match stream {
+            Err(e) => {eprintln!("Failed: {}", e)}
+            Ok(stream) => {
+                println!("Receiver Processed Data, Shutting Down");
+                let final_time = now.elapsed();
+                println!("Total Round Trip Execution Time: {:.2?}", final_time);
+                break;
+            }
+        }
+    }
     enclave.destroy();
 }
 
 fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
-    // let addr = SocketAddr::from(([172, 17, 0, 2], 8080));
-    let addr = SocketAddr::from(([172, 17, 0, 1], 8080));
+    let addr = SocketAddr::from(([172, 17, 0, 3], 8080));
+    
     let mut stream = TcpStream::connect_timeout(&addr,Duration::from_secs(10))?;
     let random = "|";
     let rand = random.as_bytes();
-    // let mut stream = TcpStream::connect("172.17.0.1:8080")?;
-    // stream.set_nonblocking(true).expect("failed to initiate non-blocking");
-    // stream.set_linger(Some(Duration::from_secs(10))).expect("set_linger call failed");
+
     println!("Outgoing Connection Started");
     stream.write(lidar)?;
     stream.flush()?;
