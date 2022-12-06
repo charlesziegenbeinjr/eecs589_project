@@ -17,3 +17,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         pose_size = int.from_bytes(tmp, byteorder='little')
         lidar = conn.recv(lidar_size)
         pose = conn.recv(pose_size)
+
+        #do pcd_algorithm
+        reply = "GOOD"
+        s.send(reply.encode('utf-8'))

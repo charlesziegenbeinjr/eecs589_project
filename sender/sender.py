@@ -1,7 +1,9 @@
 # sender.py
 
 import socket
+import timeit
 
+start = timeit.default_timer()
 HOST = "127.17.0.3"  # The server's hostname or IP address
 PORT = 8080  # The port used by the server
 
@@ -18,9 +20,13 @@ pose_size = len(pose)
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((HOST, PORT))
-    s.send(bytes(lidar_size))
-    s.send(bytes(pose_size))
-    s.send(lidar)
-    s.send(pose)
+    s.sendall(bytes(lidar_size))
+    s.sendall(bytes(pose_size))
+    s.sendall(lidar)
+    s.sendall(pose)
+    print("Data Sent")
+    reply = s.recv( 1024 ).decode( 'utf-8' )
+    print("Received ", str(reply))
 
-print("Data Sent")
+stop = timeit.default_timer()
+print('Time: ', stop - start)  
