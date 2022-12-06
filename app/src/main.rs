@@ -156,6 +156,7 @@ fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
     let addr = SocketAddr::from(([172, 17, 0, 3], 8080));
     
     let mut stream = TcpStream::connect_timeout(&addr,Duration::from_secs(10))?;
+    let send_stream = Instant::now();
     let random = "|";
     let rand = random.as_bytes();
 
@@ -170,6 +171,8 @@ fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
     stream.flush()?;
     stream.write(hash)?;
     stream.flush()?;
+    let send_stream_finish = send_stream.elapsed();
+    println!("Sending Data Over Wire Took: {:.2?}", send_stream_finish);
     Ok(())
 }
     
