@@ -21,6 +21,8 @@ extern crate sgx_urts;
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 use std::net::{TcpListener, TcpStream};
+use std::io::BufReader;
+use std::thread;
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
@@ -62,29 +64,50 @@ fn main() {
         },
     };
 
-    let mut input_data: Vec<u8> = vec![];
+    let mut lidar: Vec<u8> = vec![];
+    let mut hash: Vec<u8> = vec![];
+    let mut pose: Vec<u8> = vec![];
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
-    let listener = TcpListener::bind("127.0.0.1:80").unwrap();
+    let listener = TcpListener::bind("172.17.0.3:80").unwrap();
     println!("listening started, ready to accept");
+    let mut counter = 0;
     for stream in listener.incoming() {
-        thread::spawn(move || {
-            let mut buffer = [0; 1024];
-            loop {
-                let bytes_read = stream.read(&mut buffer)?;
-                input_data.extend_from_slice(&buffer[..bytes_read]);
+        match stream {
+            Err(e) => {eprintln!("Failed: {}", e)}
+            Ok(stream) => {
+                for data in BufReader::new(&mut stream).lines() {
+                    let header = data.unwrap();
+                    if counter == 1{
+                        for value in header.bytes() {
+                            lidar.push(value);
+                        }
+                    } else if counter == 2{
+                        for value in header.bytes() {
+                            pose.push(value);
+                        }
+                    } else if counter == 3{
+                        for value in header.bytes() {
+                            hash.push(value);
+                        }
+                    } else {
+                        // println!("Error");
+                    }
+                } 
             }
-        });
+        }
+        increment(&mut counter);
     }
     let mut integrity = False;
+    let points_num = lidar.len();
     let result = unsafe {
         say_something(enclave.geteid(),
                       &mut retval,
-                      input_string[0],
-                      input_string[1],
-                      input_string[2],
-                      integrity,
-                      input_string[3],)
+                      &lidar,
+                      points_num,
+                      &hash,
+                      &mut integrity,
+                      &pose,)
     };
     match result {
         sgx_status_t::SGX_SUCCESS => {},
