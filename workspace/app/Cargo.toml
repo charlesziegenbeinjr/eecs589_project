@@ -5,6 +5,7 @@ authors = ["The Teaclave Authors"]
 build = "build.rs"
 
 [dependencies]
+hex = "0.4.3"
 sgx_types = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 sgx_urts = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 

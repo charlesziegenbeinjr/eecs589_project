@@ -26,6 +26,7 @@ use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
 use std::io::BufReader;
 use std::thread;
+use hex::encode;
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
@@ -35,13 +36,11 @@ extern {
                      lidar2: *const f32, points_num2: usize, lidar_pose2: *const f32,  
                      retptr: *const f32) -> sgx_status_t;
     fn say_something(
-        eid: sgx_enclave_id_t,
+        eid: sgx_enclave_id_t, 
         retval: *mut sgx_status_t,
         lidar: *const u8, 
         points_num: usize,
-        hash: *const u8,
-        integrity: mut bool,
-        pose: *const u8,
+        hash: *mut [u8;64]
     ) -> sgx_status_t;
 }
 
@@ -69,12 +68,42 @@ fn parse_lidar_pose(file_path: &str) -> [f32; 6] {
     return lidar_pose;
 }
 
+fn parse_lidar_pose_remote(lidar_pose_remote: &str) -> [f32; 6] {
+    let mut lidar_pose: [f32; 6] = [0.0; 6];
+    let tokens: Vec<&str> = lidar_pose_remote.split(",").collect();
+    for (i, token) in tokens.iter().enumerate() {
+        lidar_pose[i] = token.parse().unwrap();
+    }
+    return lidar_pose;
+}
+
 fn parse_lidar(file_path: &str) -> Vec<[f32; 3]> {
     let s = fs::read_to_string(file_path).unwrap();
     let mut lidar = Vec::new();
     let lines: Vec<&str> = s.split("\n").collect();
     for line in lines.iter() {
         let xyz_str: Vec<&str> = line.split(" ").collect();
+        let mut xyz: [f32; 3] = [0.0; 3];
+        for (j, n) in xyz_str.iter().enumerate() {
+            if n.len() == 0 {
+                break;
+            }
+            if j >= 3 {
+                break;
+            }
+            xyz[j] = n.parse().unwrap();
+        }
+        lidar.push(xyz)
+    }
+    return lidar
+}
+
+fn parse_lidar_remote(lidar_remote: &str) -> Vec<[f32; 3]> {
+    let s = fs::read_to_string(file_path).unwrap();
+    let mut lidar = Vec::new();
+    let lines: Vec<&str> = s.split("\n").collect();
+    for line in lines.iter() {
+        let xyz_str: Vec<&str> = line.split(",").collect();
         let mut xyz: [f32; 3] = [0.0; 3];
         for (j, n) in xyz_str.iter().enumerate() {
             if n.len() == 0 {
@@ -148,6 +177,21 @@ fn read_lidar_info(pcd_file_path: &str, lidar_pose_file_path: &str) -> ([f32; 18
     return (lidar, lidar_pose, points_num);
 }
 
+fn read_lidar_info_remote(pcd: &str, lidar_pose: &str) -> ([f32; 180000], [f32; 6], usize) {
+    let lidar_pose: [f32; 6] = parse_lidar_pose(lidar_pose);
+    let lidar_vector: Vec<[f32; 3]> = parse_lidar(pcd);
+    let points_num = lidar_vector.len();
+
+    let mut lidar: [f32; 180000] = [0.0; 180000];
+    for (i, point) in lidar_vector.iter().enumerate() {
+        for j in 0..3 {
+            lidar[i * 3 + j] = point[j];
+        }
+    }
+
+    return (lidar, lidar_pose, points_num);
+}
+
 fn main() {
     let enclave = match init_enclave() {
         Ok(r) => {
@@ -160,11 +204,11 @@ fn main() {
         },
     };
 
-
-    let mut lidar: Vec<u8> = vec![];
-    let mut hash: Vec<u8> = vec![];
-    let mut pose: Vec<u8> = vec![];
     let mut retval = sgx_status_t::SGX_SUCCESS;
+
+    let mut lidar: String = String::new();
+    let mut hash: String = String::new();
+    let mut pose: String = String::new();
     
     let listener = TcpListener::bind("172.17.0.2:80").unwrap();
     println!("listening started, ready to accept");
@@ -176,17 +220,11 @@ fn main() {
                 for data in BufReader::new(&mut stream).lines() {
                     let header = data.unwrap();
                     if counter == 1{
-                        for value in header.bytes() {
-                            lidar.push(value);
-                        }
+                        lidar.push_str(&header)
                     } else if counter == 2{
-                        for value in header.bytes() {
-                            pose.push(value);
-                        }
+                        pose.push_str(&header);
                     } else if counter == 3{
-                        for value in header.bytes() {
-                            hash.push(value);
-                        }
+                        hash.push_str(&header);
                     } else {
                         // println!("Error");
                     }
@@ -196,24 +234,32 @@ fn main() {
         increment(&mut counter);
     }
     
-    let mut integrity = False;
+    // let mut integrity = False;
     let points_num = lidar.len();
-    let result = unsafe {
+    let hash_app = [0; 64];
+    let first_result = unsafe {
         say_something(enclave.geteid(),
-                      &mut retval,
-                      &lidar,
-                      points_num,
-                      &hash,
-                      &mut integrity,
-                      &pose,)
+                    &mut retval,
+                    lidar.as_ptr() as * const u8,
+                    points_num,
+                    hash_app.as_ptr() as * mut [u8;64])
     };
 
+        match result {
+        sgx_status_t::SGX_SUCCESS => {},
+        _ => {
+            println!("[-] ECALL Enclave Failed {}!", result.as_str());
+            return;
+        }
+    }
 
+    if encode(hash_app) != hash {
+        println!("Hashes Were Not the Same")
+    }
 
-    let mut retval = sgx_status_t::SGX_SUCCESS;
+    // let mut retval = sgx_status_t::SGX_SUCCESS;
 
-    let (lidar1, lidar_pose1, points_num1) = read_lidar_info("../opv2v/2005_000069_anomaly.txt",
-                                                        "../opv2v/2005_000069_lidar_pose.txt");    
+    let (lidar1, lidar_pose1, points_num1) = read_lidar_info_remote(&lidar,&pose);    
     let (lidar2, lidar_pose2, points_num2) = read_lidar_info("../opv2v/2014_000069.txt",
                                                         "../opv2v/2014_000069_lidar_pose.txt");            
 
