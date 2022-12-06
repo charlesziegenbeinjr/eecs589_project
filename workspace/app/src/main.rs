@@ -23,6 +23,9 @@ use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
+use std::net::{TcpListener, TcpStream};
+use std::io::BufReader;
+use std::thread;
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 
@@ -31,6 +34,15 @@ extern {
                      lidar1: *const f32, points_num1: usize, lidar_pose1: *const f32,
                      lidar2: *const f32, points_num2: usize, lidar_pose2: *const f32,  
                      retptr: *const f32) -> sgx_status_t;
+    fn say_something(
+        eid: sgx_enclave_id_t,
+        retval: *mut sgx_status_t,
+        lidar: *const u8, 
+        points_num: usize,
+        hash: *const u8,
+        integrity: mut bool,
+        pose: *const u8,
+    ) -> sgx_status_t;
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -147,6 +159,56 @@ fn main() {
             return;
         },
     };
+
+
+    let mut lidar: Vec<u8> = vec![];
+    let mut hash: Vec<u8> = vec![];
+    let mut pose: Vec<u8> = vec![];
+    let mut retval = sgx_status_t::SGX_SUCCESS;
+    
+    let listener = TcpListener::bind("172.17.0.2:80").unwrap();
+    println!("listening started, ready to accept");
+    let mut counter = 0;
+    for stream in listener.incoming() {
+        match stream {
+            Err(e) => {eprintln!("Failed: {}", e)}
+            Ok(stream) => {
+                for data in BufReader::new(&mut stream).lines() {
+                    let header = data.unwrap();
+                    if counter == 1{
+                        for value in header.bytes() {
+                            lidar.push(value);
+                        }
+                    } else if counter == 2{
+                        for value in header.bytes() {
+                            pose.push(value);
+                        }
+                    } else if counter == 3{
+                        for value in header.bytes() {
+                            hash.push(value);
+                        }
+                    } else {
+                        // println!("Error");
+                    }
+                } 
+            }
+        }
+        increment(&mut counter);
+    }
+    
+    let mut integrity = False;
+    let points_num = lidar.len();
+    let result = unsafe {
+        say_something(enclave.geteid(),
+                      &mut retval,
+                      &lidar,
+                      points_num,
+                      &hash,
+                      &mut integrity,
+                      &pose,)
+    };
+
+
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
 
