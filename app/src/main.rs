@@ -89,11 +89,11 @@ fn main() {
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
     
-    let lidar_string: String = fs::read_to_string("../test/lidar.txt").unwrap();
+    let lidar_string: String = fs::read_to_string("../test/2005_000069_anomaly.txt").unwrap();
     println!("Parsed Lidar: {:?}", lidar_string);
     println!("Parsed Lidar Length {:?}", lidar_string.len());
 
-    let lidar_pose: String = fs::read_to_string("../test/lidar_pose.txt").unwrap();
+    let lidar_pose: String = fs::read_to_string("../test/2005_000069_lidar_pose.txt").unwrap();
     println!("Loaded lidar pose {:?}", lidar_pose);
     println!("Lidar Pose Length {:?}", lidar_pose.len());
     
@@ -103,7 +103,6 @@ fn main() {
     let points_num = lidar.len();
     println!("Loaded lidar image {:?}", points_num);
 
-    // let mut hash = std::iter::repeat("X").take(64).collect::<String>();
     let hash_app = [0; 64];
     println!("Initial Hash from App:{:?}", hash_app);
 
@@ -166,10 +165,10 @@ fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
     println!("Outgoing Connection Started");
     stream.write(lidar)?;
     stream.flush()?;
-    // stream.write(lidar_pose)?;
-    // stream.flush()?;
-    // stream.write(hash)?;
-    // stream.flush()?;
+    stream.write(lidar_pose)?;
+    stream.flush()?;
+    stream.write(hash)?;
+    stream.flush()?;
     Ok(())
 }
     
