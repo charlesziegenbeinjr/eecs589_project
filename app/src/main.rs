@@ -30,7 +30,6 @@ use std::io::prelude::*;
 use std::net::{TcpStream, SocketAddr};
 use std::thread;
 use std::io::{Read,Write,Error};
-use serde::{Serialize,Deserialize};
 use std::time::Duration;
 use std::time::Instant;
     
@@ -47,13 +46,6 @@ extern {
         points_num: usize,
         hash: *mut [u8;64]
     ) -> sgx_status_t;
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct data_to_send<'a> {
-    lidar: &'a[u8],
-    lidar_pose: &'a[u8],
-    hash: &'a[u8],
 }
 
 fn init_enclave() -> SgxResult<SgxEnclave> {
@@ -157,15 +149,22 @@ fn main() {
 }
 
 fn send_data(lidar: &[u8], lidar_pose: &[u8], hash: &[u8]) -> Result<(),Error> {
-    let addr = SocketAddr::from(([172, 17, 0, 2], 8080));
+    // let addr = SocketAddr::from(([172, 17, 0, 2], 8080));
+    let addr = SocketAddr::from(([172, 17, 0, 1], 8080));
     let mut stream = TcpStream::connect_timeout(&addr,Duration::from_secs(10))?;
+    let random = "|";
+    let rand = random.as_bytes();
     // let mut stream = TcpStream::connect("172.17.0.1:8080")?;
     // stream.set_nonblocking(true).expect("failed to initiate non-blocking");
     // stream.set_linger(Some(Duration::from_secs(10))).expect("set_linger call failed");
     println!("Outgoing Connection Started");
     stream.write(lidar)?;
     stream.flush()?;
+    stream.write(rand)?;
+    stream.flush()?;
     stream.write(lidar_pose)?;
+    stream.flush()?;
+    stream.write(rand)?;
     stream.flush()?;
     stream.write(hash)?;
     stream.flush()?;
