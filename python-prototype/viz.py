@@ -51,7 +51,7 @@ class PcdVisualizer():
 
     def addAABBCls(self, object_aabb_cls):
         aabb, c = object_aabb_cls[:-1], int(object_aabb_cls[-1, 0])
-        h = random.random() * 1
+        h = random.random() * 1 + 2
         vertices = np.concatenate((aabb, np.zeros((aabb.shape[0], 1)) + h), axis=1)
         color = [0, 0, 0]
         if c != -1:

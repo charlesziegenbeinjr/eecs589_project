@@ -1,8 +1,9 @@
 import argparse
 import numpy as np
 import json
+import time
 from ground_segmentation import groundSegmentation
-from transform_pcd import transformPcd2WorldFrame, downsamplePcd, anomalyDetection
+from transform_pcd import transformPcd2WorldFrame, downsamplePcd, anomalyDetection, xy2AABBCls
 from viz import generatePcdColor, generatePcdListColor, PcdVisualizer
 
 def parseArguments():
@@ -13,7 +14,25 @@ def parseArguments():
         config = json.load(f)
     return config
 
+def readBoxCoords(file_path, delimiter, voxel_size):
+    # box_coords = np.loadtxt(file_path, delimiter)
+    box_coords = []
+    with open(file_path) as f:
+        lines = f.readlines()
+        for i in range(1000):
+            box_coord = [float(v) for v in lines[i].split(delimiter)]
+            print(box_coord)
+            box_coords.append(box_coord)
+    box_coords = np.array(box_coords)
+    object_aabb_cls_lst = []
+    for box_coord in box_coords:
+        object_aabb_cls = xy2AABBCls(voxel_size, box_coord[0], box_coord[1], 2)
+        object_aabb_cls_lst.append(object_aabb_cls)
+    return object_aabb_cls_lst
+
 def main():
+    start_t = time.time()
+
     config = parseArguments()
     pcds = []
     lidar_poses = []
@@ -33,12 +52,15 @@ def main():
 
     visualizer = PcdVisualizer()
     if config['pure_display']:
-        for pcd in pcds:
-            xyz, color = generatePcdColor(pcd, 0.5)
-            visualizer.addXyz(xyz, color)
-            visualizer.addFrame()
-            visualizer.show()
-    elif config['stitch']:
+        object_aabb_cls_lst = readBoxCoords(config['box_file']['file_path'], config['box_file']['delimiter'], config['voxel_size'])
+        for object_aabb_cls in object_aabb_cls_lst:
+            visualizer.addAABBCls(object_aabb_cls)
+
+        pcd = np.concatenate(pcds, axis=0)
+        xyz, color = generatePcdColor(pcd, 0.5)
+        visualizer.addXyz(xyz, color)
+        visualizer.addFrame()
+    elif not config['pure_display'] and config['stitch']:
         if config['anomaly_detection']:
             voxel_size = config['voxel_size']
             point_count_threshold = config['point_count_threshold']
@@ -50,7 +72,6 @@ def main():
                 visualizer.addPolygon(aabb, [1, 0, 1])
         xyzs, colors = generatePcdListColor(pcds) 
         visualizer.addXyz(xyzs, colors)
-        visualizer.show()
     else:
         for pcd in pcds:
             xyz, color = generatePcdColor(pcd, 0.5)
@@ -61,7 +82,10 @@ def main():
                                   [-10, -10, 0],
                                   [-10, -5, 0],
                                   [-15, -10, 0]])
-            visualizer.show()
+
+    end_t = time.time()
+    print(f'time consumed {end_t - start_t}')
+    visualizer.show()
 
 if __name__ == '__main__':
     main()

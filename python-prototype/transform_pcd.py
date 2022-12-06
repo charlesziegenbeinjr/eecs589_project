@@ -98,13 +98,16 @@ def voxelIndex2Xy(voxel_size, x_min, y_min, i, j):
     y = (j * voxel_size) + y_min
     return x, y
 
-def voxelIndex2AABBCls(voxel_size, x_min, y_min, i, j, cls):
-    x, y = voxelIndex2Xy(voxel_size, x_min, y_min, i, j)
+def xy2AABBCls(voxel_size, x, y, cls):
     return np.array([[x + voxel_size, y + voxel_size],
                      [x - voxel_size, y + voxel_size],
                      [x - voxel_size, y - voxel_size],
                      [x + voxel_size, y - voxel_size],
-                     [cls, 0]])
+                     [cls, 0]])  
+
+def voxelIndex2AABBCls(voxel_size, x_min, y_min, i, j, cls):
+    x, y = voxelIndex2Xy(voxel_size, x_min, y_min, i, j)
+    return xy2AABBCls(voxel_size, x, y, cls)
 
 def checkProximity(voxel_maps, center_i, center_j, radius):
     for voxel_map in voxel_maps:
@@ -125,7 +128,7 @@ def compare(voxel_maps, voxel_size, x_min, y_min, AABBs):
             i, j = voxel_ids_np[0][vi], voxel_ids_np[1][vi]
             voxel_ids.append((i, j))
             object_aabb_cls = voxelIndex2AABBCls(voxel_size, x_min, y_min, i, j, mi)
-            # object_aabb_cls_lst.append(object_aabb_cls)
+            object_aabb_cls_lst.append(object_aabb_cls)
 
             other_voxel_maps = []
             x, y = voxelIndex2Xy(voxel_size, x_min, y_min, i, j)
@@ -144,7 +147,6 @@ def compare(voxel_maps, voxel_size, x_min, y_min, AABBs):
 
 def anomalyDetection(pcds, lidar_poses, x_dist_threshold, y_dist_threshold, voxel_size, point_count_threshold):
     AABBs = getRanges(lidar_poses, x_dist_threshold, y_dist_threshold)
-    # print(AABBs)
     x_min, x_max = np.min(AABBs[:, :, 0]), np.max(AABBs[:, :, 0])
     y_min, y_max = np.min(AABBs[:, :, 1]), np.max(AABBs[:, :, 1])
     voxel_maps = pcds2VoxelMaps(pcds, voxel_size, point_count_threshold, x_min, x_max, y_min, y_max, AABBs)
