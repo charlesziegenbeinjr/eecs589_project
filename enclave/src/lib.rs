@@ -30,15 +30,19 @@ extern crate sgx_tcrypto;
 extern crate blake2;
 extern crate ndarray;
 extern crate hex;
+extern crate rsa;
+extern crate rand;
 
 use sgx_types::*;
 
+use sgx_tcrypto::*;
 use std::slice;
 use blake2::{Blake2b, Digest};
 use hex::encode;
 use std::convert::TryInto;
-
-
+// use rsa::{PublicKey, RSAPrivateKey, PaddingScheme};
+// use rand::rngs::OsRng;
+// use crate::hash::Hash;
 
 
 #[no_mangle]
@@ -63,8 +67,15 @@ pub extern "C" fn say_something(lidar: *const u8, points_num: usize, returned_ha
     let encoded_hash = encode(hash);
     println!("Hash In Hex: {:?}", encoded_hash);
 
+
+    // let mut rng = OsRng;
+    // let bits = 2048;
+    // let key = RSAPrivateKey::new(&mut rng, bits).expect("failed to generate a key");
+
+    // let result = key.sign(PaddingScheme::PKCS1v15, hash, &hash);
+
+
     *returned_hash = hash;
      
     sgx_status_t::SGX_SUCCESS
 }
-

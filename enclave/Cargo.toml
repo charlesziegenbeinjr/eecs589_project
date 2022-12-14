@@ -18,6 +18,8 @@ sgx_tcrypto = { git = "https://github.com/apache/teaclave-sgx-sdk.git" }
 blake2 = { git = "https://github.com/mesalock-linux/rustcrypto-hashes-sgx.git" }
 ndarray = { git = "https://github.com/mesalock-linux/ndarray-sgx.git" }
 hex = { git = "https://github.com/mesalock-linux/rust-hex-sgx.git" }
+rsa = { git = "https://github.com/mesalock-linux/rustcrypto-RSA-sgx.git" }
+rand = { git = "https://github.com/mesalock-linux/rand-sgx", tag = "v0.7.3_sgx1.1.3" }
 
 [patch.'https://github.com/apache/teaclave-sgx-sdk.git']
 sgx_align_struct_attribute = { path = "../../../sgx_align_struct_attribute" }

@@ -81,11 +81,11 @@ fn main() {
     
     let lidar_string: String = fs::read_to_string("../test/2005_000069_anomaly.txt").unwrap();
     let hello: String = lidar_string.replace("\n", "ZZ");
-    println!("Parsed Lidar");
+    // println!("Parsed Lidar");
     println!("Parsed Lidar Length {:?}", hello.len());
 
     let lidar_pose: String = fs::read_to_string("../test/2005_000069_lidar_pose.txt").unwrap();
-    println!("Loaded lidar pose {:?}", lidar_pose);
+    // println!("Loaded lidar pose {:?}", lidar_pose);
     println!("Lidar Pose Length {:?}", lidar_pose.len());
     
     
@@ -95,7 +95,6 @@ fn main() {
     println!("Loaded lidar image {:?}", points_num);
 
     let hash_app = [0; 64];
-    println!("Initial Hash from App:{:?}", hash_app);
 
 
     let result = unsafe {
@@ -107,7 +106,7 @@ fn main() {
     };
     
     let to_hex = encode(hash_app);
-    println!("Returned Hash from Enclave in Hex: {:?}", to_hex);
+    // println!("Returned Hash from Enclave in Hex: {:?}", to_hex);
 
     match result {
         sgx_status_t::SGX_SUCCESS => {},
