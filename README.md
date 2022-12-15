@@ -58,3 +58,6 @@ sender and one will contain the receiver. To find the IP addresses for the docke
 address in the details of that container.
 
 For each folder, you need to run a ```make``` command to build the necessary files. After this completes successfully, navigate to the bin directory of each, and run the receiver's ./app executable first, then the sender.
+
+# Questions
+Questions can be sent to cbzjr@umich.edu, and we can perform a live demonstration if needed.
